@@ -1,6 +1,6 @@
 from typing import Any
 import typing
-from mazegen.generator import make_grid, moves, opposites
+from mazegen.generator import make_grid, moves, opposites, break_wall, check_cell
 
 
 def print_maze(maze: list[list[int]]) -> None:
@@ -31,6 +31,8 @@ def main() -> None:
     print()
     break_wall(maze, 1, 1, 2)
     print_maze(maze)
+    print()
+    print(check_cell(4, 1, 3, 3))
 
 
 if __name__ == "__main__":
