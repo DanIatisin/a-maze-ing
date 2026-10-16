@@ -20,7 +20,7 @@ def make_grid(width: int, height: int) -> list[list[int]]:
         maze.append(row)
     return maze
  
-
+ 
 def main() -> None:
     maze: list[list[int]] = make_grid(3, 3)
     print_maze(maze)
