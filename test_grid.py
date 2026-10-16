@@ -19,16 +19,7 @@ def make_grid(width: int, height: int) -> list[list[int]]:
             row.append(0xF)
         maze.append(row)
     return maze
-
-
-def break_wall(maze: list[list[int]], 
-                x: int, y: int, 
-                direction: int) -> None:
-    dx, dy = moves[direction]
-    nx = x + dx
-    ny = y + dy
-    maze[y][x] &= ~direction
-    maze[ny][nx] &= ~opposites[direction]
+ 
 
 def main() -> None:
     maze: list[list[int]] = make_grid(3, 3)
