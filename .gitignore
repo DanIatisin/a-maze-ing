@@ -1,1 +1,6 @@
 test_grid.py
+venv/
+.mypy_cache/
+.idea/
+maze.txt
+__pycache__/

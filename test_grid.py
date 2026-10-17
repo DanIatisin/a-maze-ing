@@ -1,6 +1,7 @@
 from typing import Any
 import typing
 from mazegen.generator import make_grid, moves, opposites, break_wall, check_cell
+from display import print_hex
 
 
 def print_maze(maze: list[list[int]]) -> None:
@@ -33,6 +34,7 @@ def main() -> None:
     print_maze(maze)
     print()
     print(check_cell(4, 1, 3, 3))
+    #print(print_hex(maze))
 
 
 if __name__ == "__main__":
