@@ -1,4 +1,5 @@
 import random
+from collections import deque
 
 #I bit di ogni direzione
 N: int = 1
@@ -61,7 +62,7 @@ def check_nearby(x: int, y: int,
                 neighbors.append((nx, ny, direction))
     return neighbors
 
-
+# genera il maze con DFS
 def generate_maze(width: int, height: int, 
                   seed: int | None = None) -> list[list[int]]:
     rng: int = random.Random(seed)
@@ -81,23 +82,14 @@ def generate_maze(width: int, height: int,
             stack.pop()
     return maze
 
-
-def count_passages(maze: list[list[int]]) -> int:
-    count: int = 0
-    for row in maze:
-        for cell in row:
-            if (cell & E) == 0:
-                count += 1
-            if (cell & S) == 0:
-                count += 1
-    return count
-
-
-def count_reacheable(maze: list[list[int]]) -> int:
-
-    visited: set[tuple[int, int]] = {(0, 0)}
-    stack: list[tuple[int,int]] = [(0, 0)]
-    while stack:
-        for direction in directions:
-            dx, dy = moves[direction]
-           pass
+#La BFS - algortimo per solvere il maze
+def find_path(maze: list[list[int]], 
+              entry: tuple[int, int],
+              exit: tuple[int, int]) -> bool:
+    height: int = len(maze)
+    width: int = len(maze[0])
+    queue: tuple[int, int] = deque([entry])
+    parent: dict[int, int] = {entry: None}
+    x, y = entry
+    while queue:
+        
