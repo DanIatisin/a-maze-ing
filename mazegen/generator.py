@@ -1,3 +1,5 @@
+import random
+
 #I bit di ogni direzione
 N: int = 1
 E: int = 2
@@ -16,8 +18,10 @@ moves: dict[int, (int, int)] = {
 opposites: dict[int, int] = {N:S, W:E, E:W, S:N}
 
 #Una tupla che serve solo per ciclare per evitare le ripetizioni
-# directions: tuple[int, int, int, int] = (N, E, S, W)
+directions: tuple[int, int, int, int] = (N, E, S, W)
 
+#x = width
+#y = height
 #Funzione per creare il quadrato del maze
 def make_grid(width: int, height: int) -> list[list[int]]:
     maze: list[list[int]] = []
@@ -30,8 +34,8 @@ def make_grid(width: int, height: int) -> list[list[int]]:
 
 #Funizone per spaccare i muri tra le celle
 def break_wall(maze: list[list[int]], 
-                x: int, y: int, 
-                direction: int) -> None:
+               x: int, y: int, 
+               direction: int) -> None:
     dx, dy = moves[direction]
     nx = x + dx
     ny = y + dy
@@ -40,12 +44,60 @@ def break_wall(maze: list[list[int]],
 
 #controllo se la cella é valida
 def check_cell(x: int, y: int, width: int, height: int) -> bool:
-    if 0 <= y <= height:
-        return True
-    if 0 <= x <= width: 
-        return True
-    return False
+    return (0 <= y < height and 0 <= x < width)
 
 #Funzione per controllare i vicini per sapere dove si puo andare e dove no
-def check_nearby(cell: tuple[int, int]) -> list[int]:
-    pass
+def check_nearby(x: int, y: int,
+                 width:int,
+                 height: int,
+                 visited: set[tuple[int, int]]
+                 ) -> list[tuple[int, int, int]]:
+    neighbors: list[tuple[int, int, int]] = []
+    for direction in directions:
+        dx, dy = moves[direction]
+        nx = x + dx
+        ny = y + dy
+        if check_cell(nx, ny, width, height) and (nx, ny) not in visited:
+                neighbors.append((nx, ny, direction))
+    return neighbors
+
+
+def generate_maze(width: int, height: int, 
+                  seed: int | None = None) -> list[list[int]]:
+    rng: int = random.Random(seed)
+    maze: list[list[int]] = make_grid(width, height)
+    visited: set[tuple[int, int]] = {(0, 0)}
+    stack: list[tuple[int, int]] = [(0, 0)]
+    while stack:
+        x, y = stack[-1]
+        neighbors: list[tuple[int,
+                        int, int]] = check_nearby(x, y, width, height, visited)
+        if neighbors:
+            nx, ny, direction = rng.choice(neighbors)
+            break_wall(maze, x, y, direction)
+            visited.add((nx, ny))
+            stack.append((nx, ny))
+        else:
+            stack.pop()
+    return maze
+
+
+def count_passages(maze: list[list[int]]) -> int:
+    count: int = 0
+    for row in maze:
+        for cell in row:
+            if (cell & E) == 0:
+                count += 1
+            if (cell & S) == 0:
+                count += 1
+    return count
+
+
+def count_reacheable(maze: list[list[int]]) -> int:
+
+    visited: set[tuple[int, int]] = {(0, 0)}
+    stack: list[tuple[int,int]] = [(0, 0)]
+    while stack:
+        for direction in directions:
+            dx, dy = moves[direction]
+           pass
