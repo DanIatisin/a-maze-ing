@@ -84,12 +84,13 @@ def generate_maze(width: int, height: int,
 
 #La BFS - algortimo per solvere il maze
 def find_path(maze: list[list[int]], 
-              entry: tuple[int, int],
-              exit: tuple[int, int]) -> bool:
+              entry_pos: tuple[int, int],
+              exit_pos: tuple[int, int]) -> bool:
     height: int = len(maze)
     width: int = len(maze[0])
-    queue: tuple[int, int] = deque([entry])
-    parent: dict[int, int] = {entry: None}
-    x, y = entry
+    queue: list[tuple[int, int]] = deque([entry_pos])
+    parent: dict[tuple[int, int] | None, 
+                 tuple[int, int] | None] = {entry_pos: None}
     while queue:
+        x, y = queue.leftpop()
         
