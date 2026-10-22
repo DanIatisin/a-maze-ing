@@ -4,3 +4,4 @@ venv/
 .idea/
 maze.txt
 __pycache__/
+example_generator.py

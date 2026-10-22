@@ -1,6 +1,6 @@
 from typing import Any
 import typing
-from mazegen.generator import generate_maze, directions, moves, check_cell
+from mazegen.example_generator import generate_maze, find_path
 from display import print_hex
 
 N: int = 1
@@ -69,19 +69,15 @@ def main() -> None:
     # break_wall(maze, 1, 1, 2)
     # print_maze(maze)
     # print()
-    # maze = generate_maze(10, 10, 2)
-    a = generate_maze(5, 5, 1)
-    print(count_passages(a))
-    print(count_reachable(a))
-    b = generate_maze(10, 10, 1)
-    print(count_passages(b))
-    print(count_reachable(b))
+    # a = generate_maze(2, 1, 1)
+    # print(count_passages(a))
     # print(check_cell(1, 3, 3, 3))
     # print(check_nearby(0, 0, 3, 3, {}))
     # print(check_nearby(0, 0, 3, 3, {(1, 0)}))
     # print(check_nearby(1, 1, 3, 3, {}))
     #print(print_hex(maze))
+    maze = generate_maze(2, 2)
 
-
+    
 if __name__ == "__main__":
     main()
