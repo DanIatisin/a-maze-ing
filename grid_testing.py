@@ -1,6 +1,6 @@
 from typing import Any
 import typing
-from mazegen.example_generator import generate_maze, find_path
+from mazegen.generator import generate_maze, find_path
 from display import print_hex
 
 N: int = 1
@@ -76,8 +76,8 @@ def main() -> None:
     # print(check_nearby(0, 0, 3, 3, {(1, 0)}))
     # print(check_nearby(1, 1, 3, 3, {}))
     #print(print_hex(maze))
-    maze = generate_maze(2, 2)
-
+    maze = generate_maze(10, 10)
+    print_maze(maze)
     
 if __name__ == "__main__":
     main()
