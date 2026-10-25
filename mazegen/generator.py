@@ -8,6 +8,22 @@ E: int = 2
 S: int = 4
 W: int = 8
 
+FOUR: list[str] = [
+    "#..",
+    "#..",
+    "###",
+    "..#",
+    "..#"
+]
+
+TWO: list[str] = [
+    "###",
+    "..#",
+    "###",
+    "#..",
+    "###"
+]
+
 # dizionario di tuple per sapere
 # di quanto si sposta in base alla
 # direzione
@@ -25,6 +41,9 @@ opposites: dict[int, int] = {N: S, W: E, E: W, S: N}
 # Una tupla che serve solo per ciclare per evitare le ripetizioni
 directions: tuple[int, int, int, int] = (N, E, S, W)
 
+# Il numero massimo di celle utilizabile per la costruzione del maze
+MAX_CELLS: int = 2000 * 2000
+
 
 class MazeGenerator:
     """
@@ -37,6 +56,38 @@ class MazeGenerator:
                  perfect: bool, seed: int | None,
                  entry_pos: tuple[int, int],
                  exit_pos: tuple[int, int]) -> None:
+        """
+        *Salva i parametri nell'ogetto
+        *Decide il seed (o quello dato, oppure uno casuale) e crea
+        il generatore casuale
+        *Controlla che i valori siano validi e se no solleva ValueError
+
+        ARGS:
+            width - la larghezza del labirinto
+            height - la lunghezza del labirinto
+            perfect - puo assumere 2 valori:
+                True: Un labirinto perfetto con un solo percorso verso la fine
+                False: Un labirinto stile Pac-Man con ogni cella accessibile
+                        da qualsiasi punto del labirinto
+                Nota: Per il valore False non é stato ancora implementato
+                il codice
+            seed - una numero in base al quale verrá generato un labirinto
+                    se seed é indicato - la stessa sequenza di maze per istanza
+                    Se seed non é indiciato - ogni istanza ha
+                    una sequenza diversa di maze
+            entry_pos - le coordinate che indicano il punto di partenza
+            exit_pos - le coordinate che indicano il punto da raggiungere
+            Nota: entry_pos e exit_pos sono scritte sotto forma di una tuple:
+                (x, y) dove x - é la colonna e va da 0 a width -1
+                y é la riga e va da 0 a height -1
+
+        Raises:
+            ValueError - questo errore scatta solo nei seguenti casi:
+                * width o height minori di uno, oppure se il loro prodotto
+                superano il massimo di celle che si possono generare
+                * Se entry_pos e exit_pos sono le stesse coordinate, oppure
+                nel caso se sono fuori il labirinto
+        """
         self.width = width
         self.height = height
         self.perfect = perfect
@@ -52,6 +103,9 @@ class MazeGenerator:
         if (width < 1) or (height < 1):
             raise ValueError("Height and width can't be lower than 1")
 
+        if (width * height) > MAX_CELLS:
+            raise ValueError(f"Can't generate more than {MAX_CELLS} cells")
+
         if (entry_pos == exit_pos):
             raise ValueError("Entry and exit can't have the same coordinates")
 
@@ -61,12 +115,21 @@ class MazeGenerator:
         if not self.check_cell(exit_pos[0], exit_pos[1]):
             raise ValueError("Exit out of maze")
 
+        if (self.width < 9) or (self.height < 7):
+            print("The pattern 42 will not be displayed")
+
+        self.pattern: set[tuple[int, int]] = self.draw_num()
+
+        if not len(self.pattern) == 0:
+            if (entry_pos in self.pattern) or (exit_pos in self.pattern):
+                raise ValueError("Entry or exit can't be in the 42 pattern")
+
         self.rng: Random = random.Random(self.seed)
 
     def make_grid(self) -> None:
         """
         Questo metodo usando i attributi width e height
-        della classe genera una griglia di dimensione fissa 
+        della classe genera una griglia di dimensione fissa
         con valori F che sono celle con nessun muro aperto
         """
         self.maze = []
@@ -80,8 +143,8 @@ class MazeGenerator:
     def break_wall(self, x: int, y: int,
                    direction: int) -> None:
         """
-        Questo metodo prende l'attributo maze della classe e 
-        le coordinare x - width, y - height 
+        Questo metodo prende l'attributo maze della classe e
+        le coordinare x - width(colonne), y - height(righe)
         e una direzione. Ha lo scopo di
         calcolare la cella dove dovrebbe andare e
         distruggere il muro tra la cella attuale
@@ -106,7 +169,7 @@ class MazeGenerator:
                      visited: set[tuple[int, int]]
                      ) -> list[tuple[int, int, int]]:
         """
-        Questo metodo riceve come parametro due coordinate x e y 
+        Questo metodo riceve come parametro due coordinate x e y
         e un set di tuple 'visited'.Ha lo scopo
         di verificare quale celle vicino alle coordinate sono accessibile
         e returna una lista di tuple con tutte le coordinate valide
@@ -123,16 +186,17 @@ class MazeGenerator:
     # genera il maze con DFS
     def generate_maze(self) -> None:
         """
-        Questo metodo riceve come parametro gli attributi della classe
-        (maze, path). Dentro sono richiamti i metodi make_grid()
-        e break_wall() che sono usati per generare il vero labirinto,
-        creando prima la griglia e poi distrugendo i muri.
+        Questo metodo che usa gli attributi della classe
+        (maze e path). Dentro sono richiamti i metodi make_grid()
+        e break_wall() che andranno a modificare l'attributo maze
+        della classe stessa cosi ottenendo un vero labirinto.
         come algorimto viene usato il DFS - Depth first search
         """
         self.make_grid()
-        self.path = None
+        self.path = []
         visited: set[tuple[int, int]] = {(0, 0)}
         stack: list[tuple[int, int]] = [(0, 0)]
+        visited = visited.union(self.draw_num())
         while stack:
             x, y = stack[-1]
             neighbors: list[tuple[int,
@@ -160,9 +224,10 @@ class MazeGenerator:
             1. RuntimeError - scatta quando il metodo find_path()
                 viene chiamato pirima del metodo generate_maze()
                 oppure se exit non é raggiungibile
-            2. ValueError - se il dizionario parent che salva le mosse
-                in formato key: value é vuoto, quindi il programma non
-                eseguito nessuna mossa per arrivare al exit
+            2. ValueError - scatta quando position che riceve una tuple
+                dal parent che indica da dove sono arrivato e la direzione
+                e la direzione in qui sono andato é None ovvero non si riesce
+                ad arrivare al exit
         """
         if self.maze == []:
             raise RuntimeError("generate_maze() needs to be called first")
@@ -196,3 +261,19 @@ class MazeGenerator:
             current = (px, py)
         moves_done.reverse()
         self.path = moves_done
+
+    def draw_num(self) -> set[tuple[int, int]]:
+        if (self.width < 9) or (self.height < 7):
+            return set()
+        start_col: int = (self.width - 7) // 2
+        start_row: int = (self.height - 5) // 2
+        draw: set[tuple[int, int]] = set()
+        for row, symbol in enumerate(FOUR):
+            for col, char in enumerate(symbol):
+                if char == "#":
+                    draw.add((start_col + col, start_row + row))
+        for row, symbol in enumerate(TWO):
+            for col, char in enumerate(symbol):
+                if char == "#":
+                    draw.add((start_col + 4 + col, start_row + row))
+        return draw
