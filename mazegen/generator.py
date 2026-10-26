@@ -263,6 +263,15 @@ class MazeGenerator:
         self.path = moves_done
 
     def draw_num(self) -> set[tuple[int, int]]:
+        """
+        Questo metodo ha lo scopo di creare il pattern 42
+        dentro il labirinto, usando le sue dimensioni, esseguendo
+        dei oportuni calcoli per trovare il punto di partenza del disegno
+        Returns:
+            set - ritorna un set di tuple che rapresentano le celle che
+                verrano chiuse per ottenere visibile il pattern 42
+                nel labirinto
+        """
         if (self.width < 9) or (self.height < 7):
             return set()
         start_col: int = (self.width - 7) // 2
