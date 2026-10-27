@@ -120,9 +120,8 @@ class MazeGenerator:
 
         self.pattern: set[tuple[int, int]] = self.draw_num()
 
-        if not len(self.pattern) == 0:
-            if (entry_pos in self.pattern) or (exit_pos in self.pattern):
-                raise ValueError("Entry or exit can't be in the 42 pattern")
+        if (entry_pos in self.pattern) or (exit_pos in self.pattern):
+            raise ValueError("Entry or exit can't be in the 42 pattern")
 
         self.rng: Random = random.Random(self.seed)
 
@@ -286,3 +285,4 @@ class MazeGenerator:
                 if char == "#":
                     draw.add((start_col + 4 + col, start_row + row))
         return draw
+
