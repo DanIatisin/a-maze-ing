@@ -288,12 +288,32 @@ class MazeGenerator:
 
     def find_dead_ends(self) -> list[tuple[int, int]]:
         dead_ends: list[tuple[int, int]] = []
-        for row, char in enumerate(self.maze):
-            for cell, char in enumerate(char):
+        for row, string in enumerate(self.maze):
+            for cell, char in enumerate(string):
                 count: int = 0
                 for direction in directions:
-                    if (cell & direction) == 0:
+                    if (char & direction) == 0:
                         count += 1
                 if count == 1:
                     dead_ends.append((cell, row))
         return dead_ends
+
+    def breakable_walls(self, x: int, y: int) -> list[int]:
+        candidates: list[int] = []
+        for direction in directions:
+            dx, dy = moves[direction]
+            nx = x + dx
+            ny = y + dy
+            if (self.check_cell(nx, ny) and 
+                (self.maze[y][x] & direction) != 0):
+                    candidates.append(direction)
+        return candidates
+
+    def check_zone(self, x: int, y: int, direction) -> bool:
+        closed_walls: int = 0
+        candidate: bool = False
+        dx, dy = moves[direction]
+        nx = x + dx
+        ny = y + dy
+        if (direction == E or direction == W):
+            bx_candidates: list[int] = []
