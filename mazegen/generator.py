@@ -286,3 +286,14 @@ class MazeGenerator:
                     draw.add((start_col + 4 + col, start_row + row))
         return draw
 
+    def find_dead_ends(self) -> list[tuple[int, int]]:
+        dead_ends: list[tuple[int, int]] = []
+        for row, char in enumerate(self.maze):
+            for cell, char in enumerate(char):
+                count: int = 0
+                for direction in directions:
+                    if (cell & direction) == 0:
+                        count += 1
+                if count == 1:
+                    dead_ends.append((cell, row))
+        return dead_ends
