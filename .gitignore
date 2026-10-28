@@ -4,3 +4,4 @@ venv/
 .idea/
 maze.txt
 __pycache__/
+maze_analyzer.py

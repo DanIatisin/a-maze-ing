@@ -16,6 +16,7 @@ def print_hex(maze: list[list[int]]) -> str:
 def output_writer(maze: list[list[int]],
                   entry: tuple[int, int],
                   exit_point: tuple[int, int],
+                  path: list[str],
                   output_file: Path
                   ) -> None:
     """Stampa in output_file il maze con sotto entry, exit e soluzione.
@@ -30,12 +31,13 @@ def output_writer(maze: list[list[int]],
     Raises:
         OutputError: se il file non può essere scritto su output_file.
     """
+    solution: str = "".join(path)
     output: str = (
         print_hex(maze)
         + "\n\n"
-        + f"ENTRY: {entry[0]},{entry[1]}\n"
-        + f"EXIT: {exit_point[0]},{exit_point[1]}\n"
-        + "PATH:"
+        + f"{entry[0]},{entry[1]}\n"
+        + f"{exit_point[0]},{exit_point[1]}\n"
+        + f"{solution}\n"
     )
     try:
         with open(output_file, "w", encoding="utf-8") as f:
