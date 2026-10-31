@@ -5,7 +5,7 @@ from pathlib import Path
 from parsing import parse_config, ConfigError
 from output import output_writer, OutputError
 from mazegen import MazeGenerator
-from render import MlxDisplay
+from render import MlxDisplay, DisplayError
 
 
 def make_maze(config: dict[str, Any]) -> MazeGenerator:
@@ -39,17 +39,21 @@ def main() -> None:
         print(f"Config error: {e}")
         sys.exit(1)
 
-    
     # Crea il maze, stampa il maze e la soluzione sul file output_file
     try:
         maze = make_maze(config)
-        output_writer(maze.maze, maze.entry_pos, maze.exit_pos, maze.path, output_file)
+        output_writer(
+            maze.maze, maze.entry_pos, maze.exit_pos, maze.path, output_file
+            )
         MlxDisplay(maze, lambda: None).run()
     except OutputError as e:
         print(f"Output error: {e}")
         sys.exit(1)
     except ValueError as e:
         print(f"Value error: {e}")
+        sys.exit(1)
+    except DisplayError as e:
+        print(f"Display error: {e}")
         sys.exit(1)
 
 

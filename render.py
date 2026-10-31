@@ -1,4 +1,3 @@
-import os
 from typing import Any
 from collections.abc import Callable
 
@@ -7,9 +6,9 @@ from mlx import Mlx
 from mazegen import MazeGenerator
 
 
-MAX_W: int = 1200  # larghezza massima dell'immagine in pixel
-MAX_H: int = 800  # altezza massima dell'immagine in pixel
-LEGEND_H: int = 80  # fascia sotto il maze per la legenda dei tasti
+MARGIN_H: int = 120  # barra del titolo, taskbar, ecc.
+MARGIN_W: int = 40  # bordi della finestra
+LEGEND_H: int = 80  # bordo per la legenda
 MIN_CELL: int = 2  # dimensione minima di una cella in pixel
 BACKGROUND: tuple[int, int, int] = (35, 0, 35)
 
@@ -51,44 +50,58 @@ def fill_rect(
     row = pixel * w
     for yy in range(y, y + h):
         offset = yy * size_line + x * step
-        data[offset : offset + w * step] = row
-        
+        data[offset: offset + w * step] = row
+
 
 class MlxDisplay:
-    
+
     def __init__(self, gen: MazeGenerator,
                  regenerate: Callable[[], None]) -> None:
+
         self.maze: MazeGenerator = gen
         self.regenerate: Callable[[], None] = regenerate
 
         self.show_path: bool = True
         self.wall_idx: int = 0
         self.pattern_idx: int = 0
-        
-        self.cell: int = max(MIN_CELL, min(MAX_W // gen.width, MAX_H // gen.height))
-        self.wall: int = max(1, self.cell // 8)
-        self.img_w: int = gen.width * self.cell
-        self.img_h: int = gen.height * self.cell
-        
+
         self.m: Any = Mlx()
         self.mlx_ptr: Any = self.m.mlx_init()
         if not self.mlx_ptr:
             raise DisplayError("MLX could not connect to the display")
+
+        # Leggo la dimensione dello schermo e adatto la grandezza dell'immagine
+        _, screen_w, screen_h = self.m.mlx_get_screen_size(self.mlx_ptr)
+        max_w = screen_w - MARGIN_W
+        max_h = screen_h - MARGIN_H - LEGEND_H
+        self.cell: int = min(max_w // gen.width, max_h // gen.height)
+        if self.cell < MIN_CELL:
+            raise DisplayError(
+                f"Maze {gen.width}x{gen.height} is too large for the "
+                f"screen ({screen_w}x{screen_h})")
+        self.wall: int = max(1, self.cell // 8)
+        self.img_w: int = gen.width * self.cell
+        self.img_h: int = gen.height * self.cell
+
         self.win: Any = self.m.mlx_new_window(
-            self.mlx_ptr, self.img_w, self.img_h + LEGEND_H, "A-Maze-ing"
+            self.mlx_ptr, self.img_w, self.img_h + MARGIN_H, "A-Maze-ing"
         )
         if not self.win:
             raise DisplayError("MLX could not create the window")
-        self.img: Any = self.m.mlx_new_image(self.mlx_ptr, self.img_w, self.img_h)
+        self.img: Any = self.m.mlx_new_image(
+            self.mlx_ptr, self.img_w, self.img_h)
         if not self.img:
             raise DisplayError("MLX could not create the image")
 
     def draw(self) -> None:
         """Riempe l'immagine con un colore"""
         data, bpp, size_line, fmt = self.m.mlx_get_data_addr(self.img)
-        fill_rect(data, size_line, bpp, fmt, 0, 0, self.img_w, self.img_h, BACKGROUND)
+        fill_rect(
+            data, size_line, bpp, fmt, 0, 0,
+            self.img_w, self.img_h, BACKGROUND
+            )
         self.m.mlx_put_image_to_window(self.mlx_ptr, self.win, self.img, 0, 0)
-    
+
     def on_close(self, param: Any) -> None:
         """Interrompe il loop quando la finestra viene chiusa"""
         self.m.mlx_loop_exit(self.mlx_ptr)
@@ -126,11 +139,9 @@ class MlxDisplay:
             self.m.mlx_loop(self.mlx_ptr)
         finally:
             self.close()
-            
+
     def close(self) -> None:
         """Elimina immagine, finestra e pointer"""
         self.m.mlx_destroy_image(self.mlx_ptr, self.img)
         self.m.mlx_destroy_window(self.mlx_ptr, self.win)
         self.m.mlx_release(self.mlx_ptr)
-
-
