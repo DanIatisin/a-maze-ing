@@ -74,7 +74,7 @@ def _check_values(config: dict[str, Any]) -> None:
     if 'seed' in config:
         config['seed'] = _check_int(config['seed'], "SEED")
     else:
-        config["seed"] = random.SystemRandom().randrange(2**32)
+        config['seed'] = random.SystemRandom().randrange(2**32)
 
     if not config['output_file']:
         raise ConfigError("OUTPUT_FILE cannot be empty")

@@ -9,7 +9,7 @@ from mazegen import MazeGenerator, N, E, S, W
 MARGIN_H: int = 120  # barra del titolo, taskbar, ecc.
 MARGIN_W: int = 40   # bordi della finestra
 LEGEND_W: int = 80   # bordo per i tasti
-MIN_CELL: int = 2    # dimensione minima di una cella in pixel
+MIN_CELL: int = 4    # dimensione minima di una cella in pixel
 BACKGROUND: list[tuple[int, int, int]] = [
     (35, 0, 35),  # Viola
     (35, 0, 0),   # Rosso
@@ -207,9 +207,6 @@ class MlxDisplay:
             print("4.Cambio colore 42")
             self.pattern_idx = (self.pattern_idx + 1) % len(PATTERN_COLORS)
             self.draw()
-        if keynum == 53:
-            print("5.Esci")
-            self.on_close("5.Esci premuto")
 
     def on_mouse(self, button, x, y, param):
         print(f"Button {button} clicked at ({x}, {y})")
