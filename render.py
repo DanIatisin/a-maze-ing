@@ -6,7 +6,7 @@ from mlx import Mlx
 from mazegen import MazeGenerator, N, E, S, W
 
 
-MARGIN_H: int = 120  # barra del titolo, taskbar, ecc.
+MARGIN_H: int = 80  # barra del titolo, taskbar, ecc.
 MARGIN_W: int = 40   # bordi della finestra
 LEGEND_W: int = 80   # bordo per i tasti
 MIN_CELL: int = 4    # dimensione minima di una cella in pixel
