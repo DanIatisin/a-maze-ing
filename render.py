@@ -1,6 +1,7 @@
 from typing import Any
 from collections.abc import Callable
 import random
+import time
 
 from mlx import Mlx
 
@@ -191,11 +192,9 @@ class MlxDisplay:
         """Compie determinate azioni in base al tasto premuto sulla tastiera
         65307 = ESC
         49 = 1 ecc..."""
-        print(keynum)
         if keynum == 65307:
             self.on_close("ESC premuto")
         if keynum == 49:
-            print("1.Genero nuovo maze")
             config = {
                 "width": self.gen.width,
                 "height": self.gen.height,
@@ -206,17 +205,13 @@ class MlxDisplay:
             }
             self.gen = self.regenerate(config)
             self.draw()
-            print(config["seed"])
         if keynum == 50:
             self.show_path = not self.show_path
             self.draw()
-            print("2.Nascondo/mostro path")
         if keynum == 51:
-            print("3.Cambio colore muri")
             self.wall_idx = (self.wall_idx + 1) % len(WALL_COLORS)
             self.draw()
         if keynum == 52:
-            print("4.Cambio colore 42")
             self.pattern_idx = (self.pattern_idx + 1) % len(PATTERN_COLORS)
             self.draw()
 
