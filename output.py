@@ -20,14 +20,14 @@ def output_writer(maze: list[list[int]],
                   output_file: Path
                   ) -> None:
     """Stampa in output_file il maze con sotto entry, exit e soluzione.
-    
+
     Args:
         maze: griglia di int 0-15 da convertire e stampare
         entry: le coordinate di entry (x,y)
         exit_point: le coordinate di exit (x,y)
         solution:
         output_file: il file in cui stampare tutto
-        
+
     Raises:
         OutputError: se il file non può essere scritto su output_file.
     """

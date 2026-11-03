@@ -1,7 +1,6 @@
 from typing import Any
 from collections.abc import Callable
 import random
-import time
 
 from mlx import Mlx
 
@@ -37,6 +36,7 @@ PATTERN_COLORS: list[tuple[int, int, int]] = [
 START_COLOR: tuple[int, int, int] = (0, 220, 120)
 END_COLOR: tuple[int, int, int] = (255, 0, 0)
 PATH_COLOR: tuple[int, int, int] = (220, 200, 0)
+
 
 class DisplayError(Exception):
     """Gestisce gli errori di MLX"""
@@ -79,12 +79,20 @@ def fill_rect(
 
 
 class MlxDisplay:
-
+    """Classe che gestisce la visualizzazione del maze in MLX"""
     def __init__(self, gen: MazeGenerator,
-                 regenerate: Callable[[], None]) -> None:
+                 regenerate: Callable[[], MazeGenerator]) -> None:
+        """Inizializza la visualizzazione del maze in MLX.
 
+        Args:
+            gen: oggetto MazeGenerator da visualizzare.
+            regenerate: funzione che genera un nuovo maze.
+
+        Raises:
+            DisplayError: se MLX non riesce a generare l'immagine.
+        """
         self.gen: MazeGenerator = gen
-        self.regenerate: Callable[[], None] = regenerate
+        self.regenerate: Callable[[], MazeGenerator] = regenerate
 
         self.show_path: bool = True
         self.wall_idx: int = 0
@@ -195,7 +203,7 @@ class MlxDisplay:
         if keynum == 65307:
             self.on_close("ESC premuto")
         if keynum == 49:
-            config = {
+            config: dict[str, Any] = {
                 "width": self.gen.width,
                 "height": self.gen.height,
                 "perfect": self.gen.perfect,
@@ -215,7 +223,7 @@ class MlxDisplay:
             self.pattern_idx = (self.pattern_idx + 1) % len(PATTERN_COLORS)
             self.draw()
 
-    def on_mouse(self, button, x, y, param):
+    def on_mouse(self, button, x, y, param) -> None:
         print(f"Button {button} clicked at ({x}, {y})")
 
     def run(self) -> None:
@@ -230,7 +238,8 @@ class MlxDisplay:
             self.close()
 
     def close(self) -> None:
-        """Elimina immagine, finestra e pointer"""
+        """Elimina immagine, finestra e pointer dalla memoria di MLX.
+        Deve essere chiamata alla fine del programma"""
         self.m.mlx_destroy_image(self.mlx_ptr, self.img)
         self.m.mlx_destroy_window(self.mlx_ptr, self.win)
         self.m.mlx_release(self.mlx_ptr)
