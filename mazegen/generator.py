@@ -95,7 +95,7 @@ class MazeGenerator:
         self.exit_pos = exit_pos
         self.maze: list[list[int]] = []
         self.path: list[str] = []
-        self.pattern_cords: set[tuple[int, int]] = set()
+        self.pattern_cords: set[tuple[int, int]] = self.draw_num()
         if seed is None:
             self.seed = random.SystemRandom().randrange(2**32)
         else:
@@ -118,8 +118,6 @@ class MazeGenerator:
 
         if (self.width < 9) or (self.height < 7):
             print("The pattern 42 will not be displayed")
-
-        self.pattern: set[tuple[int, int]] = self.draw_num()
 
         if (entry_pos in self.pattern_cords) or (exit_pos in self.pattern_cords):
             raise ValueError("Entry or exit can't be in the 42 pattern")
@@ -193,12 +191,13 @@ class MazeGenerator:
         come algorimto viene usato il DFS - Depth first search
         """
         self.make_grid()
-        self.draw_num()
         self.path = []
-        visited: set[tuple[int, int]] = {(0, 0)}
-        stack: list[tuple[int, int]] = [(0, 0)]
+        visited: set[tuple[int, int]] = {self.entry_pos}
+        stack: list[tuple[int, int]] = [self.entry_pos]
         visited = visited.union(self.pattern_cords)
         while stack:
+            if not self.perfect:
+                self.remove_dead_ends()
             x, y = stack[-1]
             neighbors: list[tuple[int,
                             int, int]] = self.check_nearby(x, y, visited)
@@ -263,7 +262,7 @@ class MazeGenerator:
         moves_done.reverse()
         self.path = moves_done
 
-    def draw_num(self) -> None:
+    def draw_num(self) -> set[tuple[int, int]]:
         """
         Questo metodo ha lo scopo di creare il pattern 42
         dentro il labirinto, usando le sue dimensioni, esseguendo
@@ -277,15 +276,16 @@ class MazeGenerator:
             return set()
         start_col: int = (self.width - 7) // 2
         start_row: int = (self.height - 5) // 2
+        draw: set[tuple[int, int]] = set()
         for row, symbol in enumerate(FOUR):
             for col, char in enumerate(symbol):
                 if char == "#":
-                    self.pattern_cords.add((start_col + col, start_row + row))
+                    draw.add((start_col + col, start_row + row))
         for row, symbol in enumerate(TWO):
             for col, char in enumerate(symbol):
                 if char == "#":
-                    self.pattern_cords.add((start_col + 4 + col, 
-                                            start_row + row))
+                    draw.add((start_col + 4 + col, start_row + row))
+        return draw
 
     def find_dead_ends(self) -> list[tuple[int, int]]:
         dead_ends: list[tuple[int, int]] = []
@@ -325,12 +325,14 @@ class MazeGenerator:
         dx, dy = moves[direction]
         nx = x + dx
         ny = y + dy
+        minx: int = min(x, nx)
+        miny: int = min(y, ny)
         if (direction == E or direction == W):
-            bx_candidates = [x - 1, x]
+            bx_candidates = [minx - 1, minx]
             by_candidates = [y - 2, y - 1, y]
         elif (direction == N or direction == S):
             bx_candidates = [x - 2, x - 1, x]
-            by_candidates = [y - 1, y]
+            by_candidates = [miny - 1, miny]
         for bx in bx_candidates:
             for by in by_candidates:
                 if ((0 <= bx and bx + 2 < self.width) and
@@ -359,16 +361,26 @@ class MazeGenerator:
 
     def remove_dead_ends(self) -> None:
         dead_ends: list[tuple[int, int]] = self.find_dead_ends()
+        obstacle: int = 0
         for x, y in dead_ends:
             if self.is_dead_end(x, y):
                 walls: list[int] = self.breakable_walls(x, y)
                 if walls:
+                    n_dead_end: list[int] = []
+                    c_dead_end: list[int] = []
                     for wall in walls:
                         dx, dy = moves[wall]
                         nx = x + dx
                         ny = y + dy
-                        if((x, y) not in self.pattern_cords and
-                            (nx, ny) not in self.pattern_cords and
+                        if ((nx, ny) not in self.pattern_cords and
                             self.check_zone(x, y, wall)):
-                            self.break_wall(x, y, wall)
-                            break
+                            if self.is_dead_end(nx, ny):
+                                n_dead_end.append(wall)
+                            else:
+                                c_dead_end.append(wall)
+                    if n_dead_end:
+                        obstacle = self.rng.choice(n_dead_end)
+                        self.break_wall(x, y, obstacle)
+                    elif c_dead_end:
+                        obstacle = self.rng.choice(c_dead_end)
+                        self.break_wall(x, y, obstacle) 
