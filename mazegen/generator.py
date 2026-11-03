@@ -196,8 +196,6 @@ class MazeGenerator:
         stack: list[tuple[int, int]] = [self.entry_pos]
         visited = visited.union(self.pattern_cords)
         while stack:
-            if not self.perfect:
-                self.remove_dead_ends()
             x, y = stack[-1]
             neighbors: list[tuple[int,
                             int, int]] = self.check_nearby(x, y, visited)
@@ -208,6 +206,8 @@ class MazeGenerator:
                 stack.append((nx, ny))
             else:
                 stack.pop()
+        if not self.perfect:
+            self.remove_dead_ends()
 
     # La BFS - algortimo per solvere il maze
     # Parent = {dove devo andare: da dove sono arrivato}
