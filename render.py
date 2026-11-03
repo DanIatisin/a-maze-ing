@@ -1,5 +1,6 @@
 from typing import Any
 from collections.abc import Callable
+import random
 
 from mlx import Mlx
 
@@ -8,7 +9,7 @@ from mazegen import MazeGenerator, N, E, S, W
 
 MARGIN_H: int = 80  # barra del titolo, taskbar, ecc.
 MARGIN_W: int = 40   # bordi della finestra
-LEGEND_W: int = 80   # bordo per i tasti
+LEGEND_W: int = 120   # bordo per i tasti
 MIN_CELL: int = 4    # dimensione minima di una cella in pixel
 BACKGROUND: list[tuple[int, int, int]] = [
     (35, 0, 35),  # Viola
@@ -195,6 +196,17 @@ class MlxDisplay:
             self.on_close("ESC premuto")
         if keynum == 49:
             print("1.Genero nuovo maze")
+            config = {
+                "width": self.gen.width,
+                "height": self.gen.height,
+                "perfect": self.gen.perfect,
+                "seed": random.SystemRandom().randrange(2**32),
+                "entry": self.gen.entry_pos,
+                "exit": self.gen.exit_pos,
+            }
+            self.gen = self.regenerate(config)
+            self.draw()
+            print(config["seed"])
         if keynum == 50:
             self.show_path = not self.show_path
             self.draw()

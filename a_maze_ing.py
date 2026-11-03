@@ -45,7 +45,7 @@ def main() -> None:
         output_writer(
             maze.maze, maze.entry_pos, maze.exit_pos, maze.path, output_file
             )
-        MlxDisplay(maze, lambda: None).run()
+        MlxDisplay(maze, make_maze).run()
     except OutputError as e:
         print(f"Output error: {e}")
         sys.exit(1)
