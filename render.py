@@ -1,15 +1,15 @@
-from typing import Any
+import sys
 from collections.abc import Callable
-import random
+from typing import Any
 
 from mlx import Mlx
 
-from mazegen import MazeGenerator, N, E, S, W
+from mazegen import E, MazeGenerator, N, S, W
 
-
+MAX_SCREEN_W = 1920
+MAX_SCREEN_H = 1080
 MARGIN_H: int = 80  # barra del titolo, taskbar, ecc.
 MARGIN_W: int = 40   # bordi della finestra
-LEGEND_W: int = 120   # bordo per i tasti
 MIN_CELL: int = 4    # dimensione minima di una cella in pixel
 BACKGROUND: list[tuple[int, int, int]] = [
     (35, 0, 35),  # Viola
@@ -36,6 +36,18 @@ PATTERN_COLORS: list[tuple[int, int, int]] = [
 START_COLOR: tuple[int, int, int] = (0, 220, 120)
 END_COLOR: tuple[int, int, int] = (255, 0, 0)
 PATH_COLOR: tuple[int, int, int] = (220, 200, 0)
+BUTTONS: list[tuple[str, str]] = [
+    ("1", "Generate a new maze"),
+    ("2", "Hide/show shortest path"),
+    ("3", "Change maze color"),
+    ("4", "Change 42 color"),
+    ("ESC", "Close"),
+]
+TEXT_COLOR: int = 0xFFFFFFFF
+LEGEND_W: int = 280   # bordo per i tasti
+LEGEND_MARGIN: int = 15  # margine interno
+ROW_H: int = 25       # altezza di una riga di testo
+LEGEND_H: int = 2 * LEGEND_MARGIN + ROW_H * len(BUTTONS)
 
 
 class DisplayError(Exception):
@@ -105,19 +117,20 @@ class MlxDisplay:
 
         # Leggo la dimensione dello schermo e adatto la grandezza dell'immagine
         _, screen_w, screen_h = self.m.mlx_get_screen_size(self.mlx_ptr)
-        max_w = screen_w - MARGIN_W - LEGEND_W
-        max_h = screen_h - MARGIN_H
-        self.cell: int = min(32, max_w // gen.width, max_h // gen.height)
+        max_w = min(screen_w, MAX_SCREEN_W) - MARGIN_W - LEGEND_W
+        max_h = min(screen_h, MAX_SCREEN_H) - MARGIN_H
+        self.cell: int = min(96, max_w // gen.width, max_h // gen.height)
         if self.cell < MIN_CELL:
             raise DisplayError(
-                f"Maze {gen.width}x{gen.height} is too large for the "
-                f"screen ({screen_w}x{screen_h})")
+                f"Maze {gen.width}x{gen.height} is too large for the screen. "
+                f"Max size: {int(max_w / MIN_CELL)}x{int(max_h / MIN_CELL)}"
+            )
         self.wall: int = 1
         self.img_w: int = gen.width * self.cell
         self.img_h: int = gen.height * self.cell
-
         self.win: Any = self.m.mlx_new_window(
-            self.mlx_ptr, self.img_w + LEGEND_W, self.img_h, "A-Maze-ing"
+            self.mlx_ptr, self.img_w + LEGEND_W,
+            max(self.img_h, LEGEND_H), "A-Maze-ing"
         )
         if not self.win:
             raise DisplayError("MLX could not create the window")
@@ -151,12 +164,9 @@ class MlxDisplay:
     def _draw_path(
                 self, data: Any, size_line: int, bpp: int, fmt: int) -> None:
         """Disegna la soluzione"""
-        path_color = PATH_COLOR
-        start_color = START_COLOR
-        end_color = END_COLOR
         c = self.cell
         x, y = self.gen.entry_pos[0], self.gen.entry_pos[1]
-        fill_rect(data, size_line, bpp, fmt, x * c, y * c, c, c, start_color)
+        fill_rect(data, size_line, bpp, fmt, x * c, y * c, c, c, START_COLOR)
 
         for direction in self.gen.path:
             if direction == "N":
@@ -168,8 +178,8 @@ class MlxDisplay:
             if direction == "W":
                 x -= 1
             fill_rect(
-                data, size_line, bpp, fmt, x * c, y * c, c, c, path_color)
-        fill_rect(data, size_line, bpp, fmt, x * c, y * c, c, c, end_color)
+              data, size_line, bpp, fmt, x * c, y * c, c, c, PATH_COLOR)
+        fill_rect(data, size_line, bpp, fmt, x * c, y * c, c, c, END_COLOR)
 
     def _draw_42(self, data: Any, size_line: int,
                  bpp: int, fmt: int) -> None:
@@ -179,6 +189,15 @@ class MlxDisplay:
 
         for x, y in self.gen.pattern_cords:
             fill_rect(data, size_line, bpp, fmt, x * c, y * c, c, c, color)
+
+    def _draw_buttons(self) -> None:
+        """Scrive la leggenda dei comandi del maze"""
+        x = self.img_w + LEGEND_MARGIN
+        for i, (key, label) in enumerate(BUTTONS):
+            self.m.mlx_string_put(
+                self.mlx_ptr, self.win, x,
+                LEGEND_MARGIN + i * ROW_H, TEXT_COLOR,
+                f"{key}. {label}")
 
     def draw(self) -> None:
         """Disegna il maze, il pattern 42 e la soluzione"""
@@ -196,40 +215,57 @@ class MlxDisplay:
         """Interrompe il loop quando la finestra viene chiusa"""
         self.m.mlx_loop_exit(self.mlx_ptr)
 
+    def _do_action(self, name: str) -> None:
+        """Esegue le azioni scelte con la tastiera o col mouse."""
+        if name == "1":
+            try:
+                self.gen = self.regenerate()
+            except (ValueError, RuntimeError, OSError) as e:
+                print(f"Error: {e}", file=sys.stderr)
+                return
+            self.draw()
+        if name == "2":
+            self.show_path = not self.show_path
+            self.draw()
+        if name == "3":
+            self.wall_idx = (self.wall_idx + 1) % len(WALL_COLORS)
+            self.draw()
+        if name == "4":
+            self.pattern_idx = (self.pattern_idx + 1) % len(PATTERN_COLORS)
+            self.draw()
+        if name == "ESC":
+            self.on_close("ESC premuto")
+
     def on_key(self, keynum: int, param: Any) -> None:
-        """Compie determinate azioni in base al tasto premuto sulla tastiera
+        """Seleziona l'azione da compiere in base
+        al tasto premuto sulla tastiera:
         65307 = ESC
         49 = 1 ecc..."""
         if keynum == 65307:
-            self.on_close("ESC premuto")
+            self._do_action("ESC")
         if keynum == 49:
-            config: dict[str, Any] = {
-                "width": self.gen.width,
-                "height": self.gen.height,
-                "perfect": self.gen.perfect,
-                "seed": random.SystemRandom().randrange(2**32),
-                "entry": self.gen.entry_pos,
-                "exit": self.gen.exit_pos,
-            }
-            self.gen = self.regenerate(config)
-            self.draw()
+            self._do_action("1")
         if keynum == 50:
-            self.show_path = not self.show_path
-            self.draw()
+            self._do_action("2")
         if keynum == 51:
-            self.wall_idx = (self.wall_idx + 1) % len(WALL_COLORS)
-            self.draw()
+            self._do_action("3")
         if keynum == 52:
-            self.pattern_idx = (self.pattern_idx + 1) % len(PATTERN_COLORS)
-            self.draw()
+            self._do_action("4")
 
-    def on_mouse(self, button, x, y, param) -> None:
+    def on_mouse(self, button: int, x: int, y: int, param: Any) -> None:
+        """Registra l'azione premuta con il mouse"""
+        if button != 1 or x < self.img_w:
+            return
+        row = (y - LEGEND_MARGIN) // ROW_H
+        if 0 <= row < len(BUTTONS):
+            self._do_action(BUTTONS[row][0])
         print(f"Button {button} clicked at ({x}, {y})")
 
     def run(self) -> None:
         """Visualizza l'immagine, registra gli input e chiude la finestra"""
         try:
             self.draw()
+            self._draw_buttons()
             self.m.mlx_key_hook(self.win, self.on_key, None)
             self.m.mlx_mouse_hook(self.win, self.on_mouse, None)
             self.m.mlx_hook(self.win, 33, 0, self.on_close, None)

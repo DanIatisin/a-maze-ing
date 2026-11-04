@@ -1,6 +1,6 @@
+import random
 from pathlib import Path
 from typing import Any
-import random
 
 
 class ConfigError(Exception):
@@ -42,16 +42,7 @@ def _check_coordinates(s: str, key: str) -> tuple[int, int]:
 
 def _check_values(config: dict[str, Any]) -> None:
     """Converte tutti i valori del config file
-    e controlla che rientrino nei parametri.
-
-    - Controlla se WIDTH e HEIGHT sono int e sono maggiori di 1
-    - Controlla se ENTRY ed EXIT sono coordinate valide
-    - Controlla che ENTRY ed EXIT non siano uguali
-    - Controlla che ENTRY ed EXIT siano all'interno del maze
-    - Controlla che PERFECT sia un boolean
-    - Converte SEED in un int se esiste
-    - Controlla che OUTPUT_FILE esista
-    """
+    e controlla che rientrino nei parametri."""
     config['width'] = _check_int(config['width'], "WIDTH")
     config["height"] = _check_int(config["height"], "HEIGHT")
 
@@ -78,6 +69,7 @@ def _check_values(config: dict[str, Any]) -> None:
 
     if not config['output_file']:
         raise ConfigError("OUTPUT_FILE cannot be empty")
+    config["output_file"] = Path(config["output_file"])
 
 
 def parse_config(config_file: str) -> dict[str, Any]:
