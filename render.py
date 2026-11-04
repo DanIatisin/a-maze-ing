@@ -44,10 +44,14 @@ BUTTONS: list[tuple[str, str]] = [
     ("ESC", "Close"),
 ]
 TEXT_COLOR: int = 0xFFFFFFFF
-LEGEND_W: int = 280   # bordo per i tasti
+LEGEND_W: int = 310   # bordo per i tasti
 LEGEND_MARGIN: int = 15  # margine interno
-ROW_H: int = 25       # altezza di una riga di testo
+ROW_H: int = 10       # altezza di una riga di testo
 LEGEND_H: int = 2 * LEGEND_MARGIN + ROW_H * len(BUTTONS)
+
+BTN_GAP: int = 10  # spazio tra i bottoni
+BTN_MIN_H: int = 30
+TEXT_PAD_X: int = 10  # margine del testo dentro il bottone
 
 
 class DisplayError(Exception):
@@ -138,6 +142,10 @@ class MlxDisplay:
             self.mlx_ptr, self.img_w, self.img_h)
         if not self.img:
             raise DisplayError("MLX could not create the image")
+        self.panel: Any = self.m.mlx_new_image(
+            self.mlx_ptr, LEGEND_W, self.img_h)
+        if not self.panel:
+            raise DisplayError("MLX could not create the panel image")
 
     def _draw_walls(self, data: Any, size_line: int,
                     bpp: int, fmt: int) -> None:
@@ -190,14 +198,42 @@ class MlxDisplay:
         for x, y in self.gen.pattern_cords:
             fill_rect(data, size_line, bpp, fmt, x * c, y * c, c, c, color)
 
-    def _draw_buttons(self) -> None:
+    def _button_rect(self, index: int) -> tuple[int, int, int, int]:
+        """Ritorna (x, y, width, height) di un pulsante"""
+        n = len(BUTTONS)
+        button = (self.img_h - 2 * LEGEND_MARGIN + BTN_GAP) // n
+        h = max(BTN_MIN_H, button - BTN_GAP)
+        buttons_area = n * h + (n - 1) * BTN_GAP
+        topbutton = (self.img_h - buttons_area) // 2
+        y = topbutton + index * (h + BTN_GAP)
+        return LEGEND_MARGIN, y, LEGEND_W - 2 * LEGEND_MARGIN, h
+
+    def _draw_panel(self) -> None:
+        """Disegna il pannello della legenda ed ogni pulsante"""
+        data, bpp, size_line, fmt = self.m.mlx_get_data_addr(self.panel)
+        fill_rect(
+            data, size_line, bpp, fmt,
+            0, 0, LEGEND_W, self.img_h, BACKGROUND[self.wall_idx])
+        for i in range(len(BUTTONS)):
+            x, y, w, h = self._button_rect(i)
+            fill_rect(
+                data, size_line, bpp, fmt,
+                x, y, w, h, WALL_COLORS[self.wall_idx])
+            fill_rect(data, size_line, bpp, fmt,
+                      x + 2, y + 2, w - 4, h - 4, BACKGROUND[self.wall_idx])
+
+    def _write_buttons(self) -> None:
         """Scrive la leggenda dei comandi del maze"""
-        x = self.img_w + LEGEND_MARGIN
         for i, (key, label) in enumerate(BUTTONS):
+            x, y, _, h = self._button_rect(i)
             self.m.mlx_string_put(
-                self.mlx_ptr, self.win, x,
-                LEGEND_MARGIN + i * ROW_H, TEXT_COLOR,
-                f"{key}. {label}")
+                self.mlx_ptr,
+                self.win,
+                self.img_w + x + TEXT_PAD_X,  # x
+                y + (h - ROW_H) // 2,         # y
+                TEXT_COLOR,
+                f"{key}. {label}",
+            )
 
     def draw(self) -> None:
         """Disegna il maze, il pattern 42 e la soluzione"""
@@ -209,7 +245,11 @@ class MlxDisplay:
         if self.show_path is True:
             self._draw_path(data, size_line, bpp, fmt)
         self._draw_walls(data, size_line, bpp, fmt)
+        self._draw_panel()
         self.m.mlx_put_image_to_window(self.mlx_ptr, self.win, self.img, 0, 0)
+        self.m.mlx_put_image_to_window(
+            self.mlx_ptr, self.win, self.panel, self.img_w, 0)
+        self._write_buttons()
 
     def on_close(self, param: Any) -> None:
         """Interrompe il loop quando la finestra viene chiusa"""
@@ -256,16 +296,17 @@ class MlxDisplay:
         """Registra l'azione premuta con il mouse"""
         if button != 1 or x < self.img_w:
             return
-        row = (y - LEGEND_MARGIN) // ROW_H
-        if 0 <= row < len(BUTTONS):
-            self._do_action(BUTTONS[row][0])
-        print(f"Button {button} clicked at ({x}, {y})")
+        panel_x = x - self.img_w
+        for i, (key, _) in enumerate(BUTTONS):
+            bx, by, bw, bh = self._button_rect(i)
+            if bx <= panel_x < bw + bx and by <= y <= by + bh:
+                self._do_action(key)
+                return
 
     def run(self) -> None:
         """Visualizza l'immagine, registra gli input e chiude la finestra"""
         try:
             self.draw()
-            self._draw_buttons()
             self.m.mlx_key_hook(self.win, self.on_key, None)
             self.m.mlx_mouse_hook(self.win, self.on_mouse, None)
             self.m.mlx_hook(self.win, 33, 0, self.on_close, None)
@@ -277,5 +318,6 @@ class MlxDisplay:
         """Elimina immagine, finestra e pointer dalla memoria di MLX.
         Deve essere chiamata alla fine del programma"""
         self.m.mlx_destroy_image(self.mlx_ptr, self.img)
+        self.m.mlx_destroy_image(self.mlx_ptr, self.panel)
         self.m.mlx_destroy_window(self.mlx_ptr, self.win)
         self.m.mlx_release(self.mlx_ptr)
