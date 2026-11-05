@@ -32,9 +32,13 @@ clean:
 	rm -rf .mypy_cache .pytest_cache build dist *.egg-info
 
 lint:
-	$(PYTHON) -m flake8 .
+	$(PYTHON) -m flake8 . --exclude=venv,.venv
 	$(PYTHON) -m mypy . $(MYPY_FLAGS)
  
 lint-strict:
-	$(PYTHON) -m flake8 .
+	$(PYTHON) -m flake8 . --exclude=venv,.venv
 	$(PYTHON) -m mypy . --strict
+
+build:  # Non funziona
+	$(PYTHON) -m build
+	cp dist/mazegen-* .

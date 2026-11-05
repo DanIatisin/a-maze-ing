@@ -12,7 +12,7 @@ break_wall() keeps the two sides consistent.
 
 If the maze has at least 9 columns and 7 rows, the "42" pattern is drawn
 using fully closed cells.
-""""
+"""
 
 import random
 from random import Random
@@ -62,7 +62,7 @@ MAX_CELLS: int = 2000 * 2000
 
 
 class MazeGenerator:
-     """Generate a maze and find the shortest path to its exit.
+    """Generate a maze and find the shortest path to its exit.
 
     After creating the object, call generate_maze() and, if the path is
     needed, find_path().
