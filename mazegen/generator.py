@@ -1,3 +1,19 @@
+"""Maze generator and shortest-path solver.
+
+the module provides the MazeGenerator class, which generates a
+rectangular maze width a depth-first search (DFS) and finds the shortest
+path from the entry to the exit with a breadth-first search (BFS).
+
+Each cell is a 4-bit integer, one bit per direction: a bit set to 1
+means a closed wall, a bit set to 0 means an open wall. The constants
+N, E, S and W are the masks of the four bits. The wall between two
+adjacent cells is stored in bots cells(E in one, W in the other) and
+break_wall() keeps the two sides consistent.
+
+If the maze has at least 9 columns and 7 rows, the "42" pattern is drawn
+using fully closed cells.
+""""
+
 import random
 from random import Random
 from collections import deque
@@ -46,48 +62,66 @@ MAX_CELLS: int = 2000 * 2000
 
 
 class MazeGenerator:
-    """
-    Questa classe ha lo scopo di generare il labirinto
-    in base agli parametri passati
-    e di trovare il percorso piu corto verso l'exit
-    """
+     """Generate a maze and find the shortest path to its exit.
+
+    After creating the object, call generate_maze() and, if the path is
+    needed, find_path().
+
+    Example:
+        >>> gen = MazeGenerator(15, 11, True, 42, (0, 0), (14, 10))
+        >>> gen.generate_maze()
+        >>> gen.find_path()
+        >>> len(gen.maze), len(gen.maze[0])
+        (11, 15)
+
+    Attributes:
+        width: Number of columns of the maze.
+        height: Number of rows of the maze.
+        perfect: True for a perfect maze (exactly one path between any two
+            cells), False for a maze with loops.
+        entry_pos: (x, y) coordinates of the entry cell.
+        exit_pos: (x, y) coordinates of the exit cell.
+        seed: Seed used by the random number generator.
+        rng: Random number generator (random.Random) initialised with seed.
+        maze: Grid of height rows by width columns, accessed as
+            maze[y][x]. Empty until generate_maze() is called.
+        path: List of moves ("N", "E", "S", "W") from the entry to the
+            exit. Empty until find_path() is called.
+        pattern_cords: Set of (x, y) coordinates of the cells forming the
+            42 pattern. Empty if the maze is smaller than 9x7."""
 
     def __init__(self, width: int, height: int,
                  perfect: bool, seed: int | None,
                  entry_pos: tuple[int, int],
                  exit_pos: tuple[int, int]) -> None:
-        """
-        *Salva i parametri nell'ogetto
-        *Decide il seed (o quello dato, oppure uno casuale) e crea
-        il generatore casuale
-        *Controlla che i valori siano validi e se no solleva ValueError
+        """Create the generator and check that the parameters are valid.
 
-        ARGS:
-            width - la larghezza del labirinto
-            height - la lunghezza del labirinto
-            perfect - puo assumere 2 valori:
-                True: Un labirinto perfetto con un solo percorso verso la fine
-                False: Un labirinto stile Pac-Man con ogni cella accessibile
-                        da qualsiasi punto del labirinto
-                Nota: Per il valore False non é stato ancora implementato
-                il codice
-            seed - una numero in base al quale verrá generato un labirinto
-                    se seed é indicato - la stessa sequenza di maze per istanza
-                    Se seed non é indiciato - ogni istanza ha
-                    una sequenza diversa di maze
-            entry_pos - le coordinate che indicano il punto di partenza
-            exit_pos - le coordinate che indicano il punto da raggiungere
-            Nota: entry_pos e exit_pos sono scritte sotto forma di una tuple:
-                (x, y) dove x - é la colonna e va da 0 a width -1
-                y é la riga e va da 0 a height -1
+        The maze is not generated here: call generate_maze() for that. If the
+        maze is smaller than 9x7 the 42 pattern cannot be drawn and a warning
+        is printed.
+
+        Args:
+            width: Number of columns (at least 1).
+            height: Number of rows (at least 1).
+            perfect: If True the maze is perfect, meaning there is exactly one
+                possible path between any two cells. If False, after the
+                generation some walls are opened to remove dead ends, which
+                creates loops.
+            seed: Seed of the random number generator. With the same
+                parameters and the same seed the same maze is always
+                generated. If None a random seed is chosen, readable
+                afterwards from self.seed.
+            entry_pos: (x, y) coordinates of the entry. x is the column
+                (from 0 to width - 1) and y is the row (from 0 to height - 1).
+            exit_pos: (x, y) coordinates of the exit, same format as
+                entry_pos.
 
         Raises:
-            ValueError - questo errore scatta solo nei seguenti casi:
-                * width o height minori di uno, oppure se il loro prodotto
-                superano il massimo di celle che si possono generare
-                * Se entry_pos e exit_pos sono le stesse coordinate, oppure
-                nel caso se sono fuori il labirinto
-        """
+            ValueError: If width or height is lower than 1, if
+                width * height exceeds MAX_CELLS, if entry_pos and exit_pos
+                are the same, if either of them is outside the maze, or if
+                either of them falls on a cell of the 42 pattern."""
+
         self.width = width
         self.height = height
         self.perfect = perfect
@@ -125,11 +159,11 @@ class MazeGenerator:
         self.rng: Random = random.Random(self.seed)
 
     def make_grid(self) -> None:
-        """
-        Questo metodo usando i attributi width e height
-        della classe genera una griglia di dimensione fissa
-        con valori F che sono celle con nessun muro aperto
-        """
+        """Create the initial grid with all the walls closed.
+
+        Replace maze with a grid of height rows by width columns where
+        every cell is 0xF (N, E, S and W walls closed). Any previous maze
+        is discarded."""
         self.maze = []
         for _ in range(self.height):
             row: list[int] = []
@@ -140,14 +174,16 @@ class MazeGenerator:
     # Funizone per spaccare i muri tra le celle
     def break_wall(self, x: int, y: int,
                    direction: int) -> None:
-        """
-        Questo metodo prende l'attributo maze della classe e
-        le coordinare x - width(colonne), y - height(righe)
-        e una direzione. Ha lo scopo di
-        calcolare la cella dove dovrebbe andare e
-        distruggere il muro tra la cella attuale
-        e quella calcolata
-        """
+        """Open the wall between a cell and its neighbour.
+        
+        Clear the direction bit in cell(x, y) and the opposite bit in the
+        nieghbouring cell, so the wall stays consistent on both sides.The
+        bounds are not checked: the neighbouring cell must be inside the grid
+        
+        Args:
+            x: Column of the cell.
+            y: Row of the cell.
+            direction: Direction of the wall to open(N, E, S or W)."""
         dx, dy = moves[direction]
         nx = x + dx
         ny = y + dy
@@ -156,22 +192,37 @@ class MazeGenerator:
 
     # controllo se la cella é valida
     def check_cell(self, x: int, y: int) -> bool:
-        """
-        Questo metodo returna True se le coordinate passate
-        sono all'interno del maze
-        """
+        """Check if the coordinates are inside the maze.
+        
+        Args:
+            x: Column to check.
+            y: row to check.
+            
+        Returns: 
+            True if 0 <= x < width and 0 <= y < height, otherwise False.The
+            42 pattern is not taken into account."""
         return (0 <= y < self.height and 0 <= x < self.width)
 
     # Funzione per controllare i vicini per sapere dove si puo andare e dove no
     def check_nearby(self, x: int, y: int,
                      visited: set[tuple[int, int]]
                      ) -> list[tuple[int, int, int]]:
-        """
-        Questo metodo riceve come parametro due coordinate x e y
-        e un set di tuple 'visited'.Ha lo scopo
-        di verificare quale celle vicino alle coordinate sono accessibile
-        e returna una lista di tuple con tutte le coordinate valide
-        """
+        """Generates a list of neighbour cells that have not been visited yet.
+        
+        A neighbour is valid only if is inside the maze and is not in visited.
+        The walls are not looked at because this is used by DFS to see where
+        to carve.The 42 cells are included in visited
+        
+        Args:
+            x: Column of the cell
+            y: Row of the cell
+            visited: List of cells that has been visited, contains also 
+            the cells of 42 pattern.
+        
+        Returns:
+            List of (nx, ny, direction) tuples, for each valid neighbour,
+            where direction leads from (x, y) to (nx, ny). The list is empty
+            if ther are no valid neighbours."""
         neighbors: list[tuple[int, int, int]] = []
         for direction in directions:
             dx, dy = moves[direction]
@@ -183,13 +234,20 @@ class MazeGenerator:
 
     # genera il maze con DFS
     def generate_maze(self) -> None:
-        """
-        Questo metodo che usa gli attributi della classe
-        (maze e path). Dentro sono richiamti i metodi make_grid()
-        e break_wall() che andranno a modificare l'attributo maze
-        della classe stessa cosi ottenendo un vero labirinto.
-        come algorimto viene usato il DFS - Depth first search
-        """
+        """Generate a new_maze with an iterative DFS.
+        
+        Creates the grid width make_grid(), then it starts carving a 
+        passage from entry_pos towards a random unvisited neighbour
+        chosen with rng.When a cell has no more neighbours, backtrack.
+        The cells of the 42 pattern are never visited and stay closed.
+        
+        The result is a perfect maze.If perfect is False, remove_dead_ends()
+        is called at the end, which opens some walls and create loops.
+        
+        Overwrite maze and empty path: after a new_maze, find_path() must
+        be called again.The random number generator is not re-initialised
+        so repeated calls on the same istance give different maze, but
+        always reproducible for a given seed."""
         self.make_grid()
         self.path = []
         visited: set[tuple[int, int]] = {self.entry_pos}
@@ -212,23 +270,17 @@ class MazeGenerator:
     # La BFS - algortimo per solvere il maze
     # Parent = {dove devo andare: da dove sono arrivato}
     def find_path(self) -> None:
-        """
-        Questo metodo ricevi i attribuit della classe in
-        particolare (path, maze, entry_pos, exit_pos), non restisuisce niente
-        perche va a modificare diretamente l'attributo path della classe,
-        cosi é possibile salvarsi il percorso. In caso di una generazione
-        di un nuovo labirinto nella stessa istanza all'attributo path viene
-        assegnata la nuova lista di mosse per ricreare il percorso
-        dentro il nuovo maze.
-        Dentro il metodo aviene un raise di 2 tipi Errori:
-            1. RuntimeError - scatta quando il metodo find_path()
-                viene chiamato pirima del metodo generate_maze()
-                oppure se exit non é raggiungibile
-            2. ValueError - scatta quando position che riceve una tuple
-                dal parent che indica da dove sono arrivato e la direzione
-                e la direzione in qui sono andato é None ovvero non si riesce
-                ad arrivare al exit
-        """
+        """Find the shortest path from entry to the exit with a BFS.
+        
+        Store the result in path as a list of moves ("N", "E", "S", "W"),
+        replacing the previous one.Call if after generate_maze(), and again
+        every time a new maze is generated.
+        
+        Raises:
+            RuntimeError: If generate_maze() has not been called yet, or if
+                the exit cannot be reached from the entry.
+            ValueError: If the path reconstruction fails.This should not
+                happen: it would mean an internal inconsistency"""
         if self.maze == []:
             raise RuntimeError("generate_maze() needs to be called first")
         moves_done: list[str] = []
@@ -263,15 +315,15 @@ class MazeGenerator:
         self.path = moves_done
 
     def draw_num(self) -> set[tuple[int, int]]:
-        """
-        Questo metodo ha lo scopo di creare il pattern 42
-        dentro il labirinto, usando le sue dimensioni, esseguendo
-        dei oportuni calcoli per trovare il punto di partenza del disegno
+        """Compute the cells that form the "42" pattern.
+        
+        The pattern is 7 cells wide and 5 cells tall: 3 columns for the "4",
+        one empty column and 3 columns for the "2".It is centered in the maze
+        and only appears if there are at least 9 columns and 7 rows.
+        
         Returns:
-            set - ritorna un set di tuple che rapresentano le celle che
-                verrano chiuse per ottenere visibile il pattern 42
-                nel labirinto
-        """
+            Set of (x, y) coordinates of the cells to leave completely closed.
+            It is empty if maze is smaller than 9x7"""
         if (self.width < 9) or (self.height < 7):
             return set()
         start_col: int = (self.width - 7) // 2
@@ -288,6 +340,14 @@ class MazeGenerator:
         return draw
 
     def find_dead_ends(self) -> list[tuple[int, int]]:
+        """"Finds all the dead ends of the maze.
+        
+        A dead end is a cell with exactly one wall open.The cells of 42
+        pattern are not dead ends.
+        
+        Returns:
+            List of (x, y) coordinates, ordered by column from top to bottom
+            and by row from left to right"""
         dead_ends: list[tuple[int, int]] = []
         for row, string in enumerate(self.maze):
             for cell, char in enumerate(string):
@@ -300,6 +360,18 @@ class MazeGenerator:
         return dead_ends
 
     def is_dead_end(self, x: int, y: int) -> bool:
+        """Check whether a cell is a dead end
+        
+        Unlike find_dead_ends() thos looks at a single cell and reads
+        the current state, so it is useful after other walls have
+        been opened
+        
+        Args:
+            x: Column of the cell.
+            y: Row of the cell.
+            
+        Returns:
+            True if the cell has exactly one open wall, otherwise False."""
         open_walls: int = 0
         for direction in directions:
             if (self.maze[y][x] & direction) == 0:
@@ -307,6 +379,22 @@ class MazeGenerator:
         return open_walls == 1
 
     def breakable_walls(self, x: int, y: int) -> list[int]:
+        """List the closd walls of a cell which is a dead end that can be
+        opened.
+        
+        A wall is a candidate if it is closed and there is a cell inside the
+        maze on the other side, so border walls are excluded. This does not
+        check wheter the neighbouring cell is part of the 42 pattern, nor
+        whether opening the wall creates an open 3x3 area (see check_zone()):
+        the calles must do that.
+        
+        Args: 
+            x: Column of the cell.
+            y: Row of the cell.
+            
+        Returns:
+            List of the directions (N, E, S, W) of the walls that can be
+            opened. It is empty if there is none."""
         candidates: list[int] = []
         for direction in directions:
             dx, dy = moves[direction]
@@ -318,6 +406,25 @@ class MazeGenerator:
         return candidates
 
     def check_zone(self, x: int, y: int, direction: int) -> bool:
+        """Check that opening a wall does not create an open 3x3 area.
+
+        An open 3x3 area is a block of 3x3 cells in which all 12 internal
+        walls are open. This examines the 3x3 blocks that contain both cells
+        on the sides of the wall: if in one of them that wall is the only one
+        still closed, opening it would leave the whole block open.
+
+        Call it before break_wall(), while the wall is still closed: if it is
+        already open the result is meaningless. It is used by
+        remove_dead_ends().
+
+        Args:
+            x: Column of the cell the wall starts from.
+            y: Row of the cell the wall starts from.
+            direction: Direction of the wall to open (N, E, S or W).
+
+        Returns:
+            True if opening the wall is safe, False if it would create an
+            open 3x3 area."""
         closed_walls: int = 0
         candidate: bool = False
         bx_candidates: list[int] = []
@@ -360,6 +467,24 @@ class MazeGenerator:
         return True
 
     def remove_dead_ends(self) -> None:
+        """Open walls to remove dead ends, creating loops.
+
+        Make a single pass over the dead ends found by find_dead_ends() and
+        open at most one wall for each, chosen with rng among those that:
+
+        * do not lead into a cell of the 42 pattern;
+        * do not create an open 3x3 area (see check_zone()).
+
+        Among the valid walls, those leading to another dead end are
+        preferred, because a single wall removes two dead ends.
+
+        Some dead ends may remain after the call, if all their walls are
+        excluded by the rules above.
+
+        Call it only once the generation is over, not during the DFS: it could
+        open walls towards cells not visited yet, and the DFS, which does not
+        use check_zone(), could then complete an open 3x3 area. It is called
+        by generate_maze() when perfect is False."""
         dead_ends: list[tuple[int, int]] = self.find_dead_ends()
         obstacle: int = 0
         for x, y in dead_ends:
