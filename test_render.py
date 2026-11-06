@@ -96,7 +96,7 @@ def fill_rect(
 
 class MlxDisplay:
     """Classe che gestisce la visualizzazione del maze in MLX"""
-    frames: int = 0
+
     def __init__(self, gen: MazeGenerator,
                  regenerate: Callable[[], MazeGenerator]) -> None:
         """Inizializza la visualizzazione del maze in MLX.
@@ -239,6 +239,7 @@ class MlxDisplay:
 
     def draw(self) -> None:
         """Riempie i buffer delle immagini (senza toccare la finestra)"""
+        self.frames = 0
         data, bpp, size_line, fmt = self.m.mlx_get_data_addr(self.img)
         fill_rect(
             data, size_line, bpp, fmt, 0, 0, self.img_w,
@@ -256,12 +257,13 @@ class MlxDisplay:
         self.m.mlx_put_image_to_window(
             self.mlx_ptr, self.win, self.panel, self.img_w, 0)
         self._write_buttons()
-    
+
     def on_loop(self, param: Any) -> None:
         """Ripresenta le immagini nei primi frame"""
-        if self.frames < 30:
+        if self.frames < 300:
             self.frames += 1
-            self.present()
+            if self.frames % 10 == 0:
+                self.present()
 
     def on_expose(self, param: Any) -> None:
         """Ripresenta le immagini quando la finestra viene esposta"""
