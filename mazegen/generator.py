@@ -153,7 +153,8 @@ class MazeGenerator:
         if (self.width < 9) or (self.height < 7):
             print("The pattern 42 will not be displayed")
 
-        if (entry_pos in self.pattern_cords) or (exit_pos in self.pattern_cords):
+        if ((entry_pos in self.pattern_cords) or
+           (exit_pos in self.pattern_cords)):
             raise ValueError("Entry or exit can't be in the 42 pattern")
 
         self.rng: Random = random.Random(self.seed)
@@ -175,11 +176,11 @@ class MazeGenerator:
     def break_wall(self, x: int, y: int,
                    direction: int) -> None:
         """Open the wall between a cell and its neighbour.
-        
+
         Clear the direction bit in cell(x, y) and the opposite bit in the
         nieghbouring cell, so the wall stays consistent on both sides.The
         bounds are not checked: the neighbouring cell must be inside the grid
-        
+
         Args:
             x: Column of the cell.
             y: Row of the cell.
@@ -193,12 +194,12 @@ class MazeGenerator:
     # controllo se la cella é valida
     def check_cell(self, x: int, y: int) -> bool:
         """Check if the coordinates are inside the maze.
-        
+
         Args:
             x: Column to check.
             y: row to check.
-            
-        Returns: 
+
+        Returns:
             True if 0 <= x < width and 0 <= y < height, otherwise False.The
             42 pattern is not taken into account."""
         return (0 <= y < self.height and 0 <= x < self.width)
@@ -208,17 +209,17 @@ class MazeGenerator:
                      visited: set[tuple[int, int]]
                      ) -> list[tuple[int, int, int]]:
         """Generates a list of neighbour cells that have not been visited yet.
-        
+
         A neighbour is valid only if is inside the maze and is not in visited.
         The walls are not looked at because this is used by DFS to see where
         to carve.The 42 cells are included in visited
-        
+
         Args:
             x: Column of the cell
             y: Row of the cell
-            visited: List of cells that has been visited, contains also 
+            visited: List of cells that has been visited, contains also
             the cells of 42 pattern.
-        
+
         Returns:
             List of (nx, ny, direction) tuples, for each valid neighbour,
             where direction leads from (x, y) to (nx, ny). The list is empty
@@ -235,15 +236,15 @@ class MazeGenerator:
     # genera il maze con DFS
     def generate_maze(self) -> None:
         """Generate a new_maze with an iterative DFS.
-        
-        Creates the grid width make_grid(), then it starts carving a 
+
+        Creates the grid width make_grid(), then it starts carving a
         passage from entry_pos towards a random unvisited neighbour
         chosen with rng.When a cell has no more neighbours, backtrack.
         The cells of the 42 pattern are never visited and stay closed.
-        
+
         The result is a perfect maze.If perfect is False, remove_dead_ends()
         is called at the end, which opens some walls and create loops.
-        
+
         Overwrite maze and empty path: after a new_maze, find_path() must
         be called again.The random number generator is not re-initialised
         so repeated calls on the same istance give different maze, but
@@ -271,11 +272,11 @@ class MazeGenerator:
     # Parent = {dove devo andare: da dove sono arrivato}
     def find_path(self) -> None:
         """Find the shortest path from entry to the exit with a BFS.
-        
+
         Store the result in path as a list of moves ("N", "E", "S", "W"),
         replacing the previous one.Call if after generate_maze(), and again
         every time a new maze is generated.
-        
+
         Raises:
             RuntimeError: If generate_maze() has not been called yet, or if
                 the exit cannot be reached from the entry.
@@ -316,11 +317,11 @@ class MazeGenerator:
 
     def draw_num(self) -> set[tuple[int, int]]:
         """Compute the cells that form the "42" pattern.
-        
+
         The pattern is 7 cells wide and 5 cells tall: 3 columns for the "4",
         one empty column and 3 columns for the "2".It is centered in the maze
         and only appears if there are at least 9 columns and 7 rows.
-        
+
         Returns:
             Set of (x, y) coordinates of the cells to leave completely closed.
             It is empty if maze is smaller than 9x7"""
@@ -341,10 +342,10 @@ class MazeGenerator:
 
     def find_dead_ends(self) -> list[tuple[int, int]]:
         """"Finds all the dead ends of the maze.
-        
+
         A dead end is a cell with exactly one wall open.The cells of 42
         pattern are not dead ends.
-        
+
         Returns:
             List of (x, y) coordinates, ordered by column from top to bottom
             and by row from left to right"""
@@ -361,15 +362,15 @@ class MazeGenerator:
 
     def is_dead_end(self, x: int, y: int) -> bool:
         """Check whether a cell is a dead end
-        
+
         Unlike find_dead_ends() thos looks at a single cell and reads
         the current state, so it is useful after other walls have
         been opened
-        
+
         Args:
             x: Column of the cell.
             y: Row of the cell.
-            
+
         Returns:
             True if the cell has exactly one open wall, otherwise False."""
         open_walls: int = 0
@@ -381,17 +382,17 @@ class MazeGenerator:
     def breakable_walls(self, x: int, y: int) -> list[int]:
         """List the closd walls of a cell which is a dead end that can be
         opened.
-        
+
         A wall is a candidate if it is closed and there is a cell inside the
         maze on the other side, so border walls are excluded. This does not
         check wheter the neighbouring cell is part of the 42 pattern, nor
         whether opening the wall creates an open 3x3 area (see check_zone()):
         the calles must do that.
-        
-        Args: 
+
+        Args:
             x: Column of the cell.
             y: Row of the cell.
-            
+
         Returns:
             List of the directions (N, E, S, W) of the walls that can be
             opened. It is empty if there is none."""
@@ -455,11 +456,11 @@ class MazeGenerator:
                                 if (self.maze[row][col] & S) != 0:
                                     closed_walls += 1
                             if (direction == E or direction == W):
-                                if (set([(x, y), (nx, ny)]) == 
+                                if (set([(x, y), (nx, ny)]) ==
                                         set([(col + 1, row), (col, row)])):
                                     candidate = True
                             if (direction == S or direction == N):
-                                if (set([(x, y), (nx, ny)]) == 
+                                if (set([(x, y), (nx, ny)]) ==
                                         set([(col, row + 1), (col, row)])):
                                     candidate = True
                     if (closed_walls == 1) and candidate:
@@ -498,7 +499,7 @@ class MazeGenerator:
                         nx = x + dx
                         ny = y + dy
                         if ((nx, ny) not in self.pattern_cords and
-                            self.check_zone(x, y, wall)):
+                           self.check_zone(x, y, wall)):
                             if self.is_dead_end(nx, ny):
                                 n_dead_end.append(wall)
                             else:
@@ -508,4 +509,4 @@ class MazeGenerator:
                         self.break_wall(x, y, obstacle)
                     elif c_dead_end:
                         obstacle = self.rng.choice(c_dead_end)
-                        self.break_wall(x, y, obstacle) 
+                        self.break_wall(x, y, obstacle)
