@@ -53,6 +53,8 @@ BTN_GAP: int = 10  # spazio tra i bottoni
 BTN_MIN_H: int = 30
 TEXT_PAD_X: int = 10  # margine del testo dentro il bottone
 
+PATH_SIZE_RATIO: float = 0.4
+
 
 class DisplayError(Exception):
     """Gestisce gli errori di MLX"""
@@ -175,10 +177,17 @@ class MlxDisplay:
                 self, data: Any, size_line: int, bpp: int, fmt: int) -> None:
         """Disegna la soluzione"""
         c = self.cell
+        p = max(2, int(c * PATH_SIZE_RATIO)) # spessore del path in pixel
+        off = (c - p) // 2                   # margine per centrarlo
         x, y = self.gen.entry_pos[0], self.gen.entry_pos[1]
-        fill_rect(data, size_line, bpp, fmt, x * c, y * c, c, c, START_COLOR)
 
+        def mark(cx: int, cy: int, color: tuple[int, int, int])->None:
+            fill_rect(data, size_line, bpp, fmt,
+                      cx * c + off, cy * c + off, p, p, color)
+
+        mark(x, y, START_COLOR)
         for direction in self.gen.path:
+            px, py = x, y
             if direction == "N":
                 y -= 1
             if direction == "E":
@@ -187,9 +196,16 @@ class MlxDisplay:
                 y += 1
             if direction == "W":
                 x -= 1
-            fill_rect(
-              data, size_line, bpp, fmt, x * c, y * c, c, c, PATH_COLOR)
-        fill_rect(data, size_line, bpp, fmt, x * c, y * c, c, c, END_COLOR)
+            mark(x, y, PATH_COLOR)
+            if x != px:
+                fill_rect(data, size_line, bpp, fmt,
+                      min(x, px) * c + off + p, y * c + off,
+                      c - p, p, PATH_COLOR)
+            else:
+                fill_rect(data, size_line, bpp, fmt,
+                          x * c + off, min(y, py) * c + off + p,
+                          p, c - p, PATH_COLOR)
+        mark(x, y, END_COLOR)
 
     def _draw_42(self, data: Any, size_line: int,
                  bpp: int, fmt: int) -> None:
