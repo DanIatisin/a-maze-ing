@@ -239,7 +239,6 @@ class MlxDisplay:
 
     def draw(self) -> None:
         """Riempie i buffer delle immagini (senza toccare la finestra)"""
-        self.frames = 0
         data, bpp, size_line, fmt = self.m.mlx_get_data_addr(self.img)
         fill_rect(
             data, size_line, bpp, fmt, 0, 0, self.img_w,
@@ -249,7 +248,7 @@ class MlxDisplay:
             self._draw_path(data, size_line, bpp, fmt)
         self._draw_walls(data, size_line, bpp, fmt)
         self._draw_panel()
-        self.present()
+        self.m.mlx_put_image_to_window(self.mlx_ptr, self.win, self.img, 0, 0)
 
     def present(self) -> None:
         """Mette le immagini e il testo nella finestra"""
@@ -260,7 +259,7 @@ class MlxDisplay:
 
     def on_loop(self, param: Any) -> None:
         """Ripresenta le immagini nei primi frame"""
-        if self.frames < 300:
+        if self.frames < 30:
             self.frames += 1
             if self.frames % 10 == 0:
                 self.present()
@@ -288,6 +287,7 @@ class MlxDisplay:
         if name == "3":
             self.wall_idx = (self.wall_idx + 1) % len(WALL_COLORS)
             self.draw()
+            self.present()
         if name == "4":
             self.pattern_idx = (self.pattern_idx + 1) % len(PATTERN_COLORS)
             self.draw()
