@@ -57,7 +57,7 @@ def main() -> None:
         print(f"Display error: {e}")
         sys.exit(1)
     except KeyboardInterrupt:
-        print(f"\nInterrupted by user", file=sys.stderr)
+        print("\nInterrupted by user", file=sys.stderr)
         sys.exit(130)
 
 

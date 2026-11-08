@@ -55,7 +55,7 @@ BTN_MIN_H: int = 30
 TEXT_PAD_X: int = 10  # margine del testo dentro il bottone
 
 PATH_SIZE_RATIO: float = 0.4
-PATH_SPEED: int = 2
+ANIM_FRAMES: int = 100  # in quanti passaggi vuoi che finisca l'animazione
 
 
 class DisplayError(Exception):
@@ -112,8 +112,6 @@ class MlxDisplay:
         Raises:
             DisplayError: se MLX non riesce a generare l'immagine.
         """
-        self.path_len: int = 0
-        self.animating: bool = True
         self.stop: bool = False
         self.frames = 0
         self.gen: MazeGenerator = gen
@@ -122,6 +120,10 @@ class MlxDisplay:
         self.show_path: bool = True
         self.wall_idx: int = 0
         self.pattern_idx: int = 0
+
+        self.path_len: int = 0
+        self.path_speed: int = max(1, len(self.gen.path) // ANIM_FRAMES)
+        self.animating: bool = True
 
         self.m: Any = Mlx()
         self.mlx_ptr: Any = self.m.mlx_init()
@@ -182,11 +184,11 @@ class MlxDisplay:
                 self, data: Any, size_line: int, bpp: int, fmt: int) -> None:
         """Disegna la soluzione"""
         c = self.cell
-        p = max(2, int(c * PATH_SIZE_RATIO)) # spessore del path in pixel
-        off = (c - p) // 2                   # margine per centrarlo
+        p = max(2, int(c * PATH_SIZE_RATIO))  # spessore del path in pixel
+        off = (c - p) // 2                    # margine per centrarlo
         x, y = self.gen.entry_pos[0], self.gen.entry_pos[1]
 
-        def mark(cx: int, cy: int, color: tuple[int, int, int])->None:
+        def mark(cx: int, cy: int, color: tuple[int, int, int]) -> None:
             fill_rect(data, size_line, bpp, fmt,
                       cx * c + off, cy * c + off, p, p, color)
 
@@ -204,8 +206,8 @@ class MlxDisplay:
             mark(x, y, PATH_COLOR)
             if x != px:
                 fill_rect(data, size_line, bpp, fmt,
-                      min(x, px) * c + off + p, y * c + off,
-                      c - p, p, PATH_COLOR)
+                          min(x, px) * c + off + p, y * c + off,
+                          c - p, p, PATH_COLOR)
             else:
                 fill_rect(data, size_line, bpp, fmt,
                           x * c + off, min(y, py) * c + off + p,
@@ -295,7 +297,7 @@ class MlxDisplay:
             if self.frames % 10 == 0:
                 self.present()
         if self.animating and self.show_path:
-            self.path_len += PATH_SPEED
+            self.path_len += self.path_speed
             if self.path_len >= len(self.gen.path):
                 self.path_len = len(self.gen.path)
                 self.animating = False
