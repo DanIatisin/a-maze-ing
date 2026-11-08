@@ -1,3 +1,4 @@
+import signal
 import sys
 from collections.abc import Callable
 from typing import Any
@@ -288,6 +289,10 @@ class MlxDisplay:
         """Interrompe il loop quando la finestra viene chiusa"""
         self.m.mlx_loop_exit(self.mlx_ptr)
 
+    def _on_sigint(self, signum: int, frame: Any) -> None:
+        """Ctrl+C: chiede a MLX di uscire dal loop"""
+        self.m.mlx_loop_exit(self.mlx_ptr)
+
     def _do_action(self, name: str) -> None:
         """Esegue le azioni scelte con la tastiera o col mouse."""
         if name == "1":
@@ -338,6 +343,8 @@ class MlxDisplay:
                 return
 
     def run(self) -> None:
+        """Visualizza l'immagine, registra gli input e chiude la finestra"""
+        signal.signal(signal.SIGINT, self._on_sigint)
         try:
             self.draw()
             self.m.mlx_key_hook(self.win, self.on_key, None)
