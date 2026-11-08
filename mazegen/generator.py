@@ -269,7 +269,7 @@ class MazeGenerator:
             self.remove_dead_ends()
 
     # La BFS - algortimo per solvere il maze
-    # Parent = {dove devo andare: da dove sono arrivato}
+    # Parent = {dove devo andare: da dove sono arrivato e la direzione}
     def find_path(self) -> None:
         """Find the shortest path from entry to the exit with a BFS.
 
