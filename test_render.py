@@ -55,6 +55,7 @@ BTN_MIN_H: int = 30
 TEXT_PAD_X: int = 10  # margine del testo dentro il bottone
 
 PATH_SIZE_RATIO: float = 0.4
+PATH_SPEED: int = 2
 
 
 class DisplayError(Exception):
@@ -111,6 +112,9 @@ class MlxDisplay:
         Raises:
             DisplayError: se MLX non riesce a generare l'immagine.
         """
+        self.path_len: int = 0
+        self.animating: bool = True
+        self.stop: bool = False
         self.frames = 0
         self.gen: MazeGenerator = gen
         self.regenerate: Callable[[], MazeGenerator] = regenerate
@@ -187,7 +191,7 @@ class MlxDisplay:
                       cx * c + off, cy * c + off, p, p, color)
 
         mark(x, y, START_COLOR)
-        for direction in self.gen.path:
+        for direction in self.gen.path[:self.path_len]:
             px, py = x, y
             if direction == "N":
                 y -= 1
@@ -206,7 +210,8 @@ class MlxDisplay:
                 fill_rect(data, size_line, bpp, fmt,
                           x * c + off, min(y, py) * c + off + p,
                           p, c - p, PATH_COLOR)
-        mark(x, y, END_COLOR)
+        if self.path_len >= len(self.gen.path):
+            mark(x, y, END_COLOR)
 
     def _draw_42(self, data: Any, size_line: int,
                  bpp: int, fmt: int) -> None:
@@ -254,7 +259,7 @@ class MlxDisplay:
                 f"{key}. {label}",
             )
 
-    def draw(self) -> None:
+    def draw_maze(self) -> None:
         """Riempie i buffer delle immagini (senza toccare la finestra)"""
         data, bpp, size_line, fmt = self.m.mlx_get_data_addr(self.img)
         fill_rect(
@@ -267,6 +272,12 @@ class MlxDisplay:
         self._draw_panel()
         self.m.mlx_put_image_to_window(self.mlx_ptr, self.win, self.img, 0, 0)
 
+    def draw(self) -> None:
+        """Ridisegna maze e pannello, poi li presenta"""
+        self.draw_maze()
+        self._draw_panel()
+        self.present()
+
     def present(self) -> None:
         """Mette le immagini e il testo nella finestra"""
         self.m.mlx_put_image_to_window(self.mlx_ptr, self.win, self.img, 0, 0)
@@ -276,10 +287,19 @@ class MlxDisplay:
 
     def on_loop(self, param: Any) -> None:
         """Ripresenta le immagini nei primi frame"""
+        if self.stop:
+            self.m.mlx_loop_exit(self.mlx_ptr)
+            return
         if self.frames < 30:
             self.frames += 1
             if self.frames % 10 == 0:
                 self.present()
+        if self.animating and self.show_path:
+            self.path_len += PATH_SPEED
+            if self.path_len >= len(self.gen.path):
+                self.path_len = len(self.gen.path)
+                self.animating = False
+            self.draw_maze()
 
     def on_expose(self, param: Any) -> None:
         """Ripresenta le immagini quando la finestra viene esposta"""
@@ -301,9 +321,14 @@ class MlxDisplay:
             except (ValueError, RuntimeError, OSError) as e:
                 print(f"Error: {e}", file=sys.stderr)
                 return
+            self.path_len = 0
+            self.animating = True
             self.draw()
         if name == "2":
             self.show_path = not self.show_path
+            if self.show_path:
+                self.path_len = 0
+                self.animating = True
             self.draw()
         if name == "3":
             self.wall_idx = (self.wall_idx + 1) % len(WALL_COLORS)
