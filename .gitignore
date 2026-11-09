@@ -8,3 +8,5 @@ maze_analyzer.py
 test_mlx.py
 test_render.py
 testrender123.py
+dist/
+*.egg-info/
