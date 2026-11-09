@@ -55,25 +55,87 @@ Additional development dependencies:
 Note: if some are missing they will be added during the installation
 
 ### Installation
-First of all you will need to run the command:
+1. Clone the repository
+```bash
+git clone <repository_url>
+cd /path/a-maze-ing
+```
+2. Install dependecies
 ```bash
 make install
 ```
-that will install most of the dependecies
+3. Activate the virtual environment
+```bash
+source venv/bin/activate
+```
+4. To compile the project
+```bash
+make run
+```
 
 ### Usage
-Once you meet the requirements and have installed the dependecies
+If you want to use only the generator first of all you need to create a wheel file.
+In the project folder
+```bash
+make build
+```
+This command will create a .whl file.You need to install it in your project folder using
+```bash
+pip install /path/to/mazegen-1.0.0-py3-none-any.whl
+```
+to use it you need to import it in your file and pass the attributes values when creating the object. Example:
+```python
+from mazegen import MazeGenerator
+
+maze = MazeGenerator(
+    width=15
+    height=11
+    perfect=False
+    seed=42
+    entry_pos=(0, 0)
+    exit_pos=(14, 10)
+)
+```
 
 ### Configuration File
-Explain the configuration file format.
 
-Example:
+The maze generator uses a configuration file (`config.txt`) to define the maze parameters.
+
+Each line must contain a `KEY=VALUE` pair. Lines starting with `#` are treated as comments and ignored.
+
+#### Available Parameters
+
+| Parameter | Description | Example |
+|---|---|---|
+| WIDTH | Maze width (number of cells). | `WIDTH=20` |
+| HEIGHT | Maze height (number of cells). | `HEIGHT=15` |
+| ENTRY | Entry coordinates (x,y). | `ENTRY=0,0` |
+| EXIT | Exit coordinates (x,y). | `EXIT=19,14` |
+| OUTPUT_FILE | Name of the output file. | `OUTPUT_FILE=maze.txt` |
+| PERFECT | Enables or disables perfect maze generation. | `PERFECT=True` |
+
+#### Example Configuration
+
 ```text
+# Maze dimensions
 WIDTH=20
 HEIGHT=15
+
+# Entry and exit positions
 ENTRY=0,0
 EXIT=19,14
+
+# Output file
 OUTPUT_FILE=maze.txt
-PERFECT=False
+
+# Generation mode
+PERFECT=True
 ```
+
 ## Resources
+To understand DFS - https://www.codecademy.com/article/depth-first-search-dfs-algorithm
+
+To understand BFS - https://www.codecademy.com/article/breadth-first-search-bfs-algorithm
+
+## Artificial Intelligence
+Was used in this project only to understand better the subject, debugging, testing and to understand various python concepts
