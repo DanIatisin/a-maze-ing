@@ -21,10 +21,11 @@ the maze and will fill a dictionary with the coordinates of the cell where it ne
 to go(as KEY) and the cell where it came from alongside with the direction(as value).
 Then it will check if the exit is present in the dictionary, if it is present then it
 will look at it's value to see from wich cell it arrived and the direction it took therfore
-the direction will be saved in a list to recreate all the path from start to end
+the direction will be saved in a list to recreate all the path from the entry to the exit
 
 ### Braided Maze
-
+If the flag Perfect in config.txt file is set to False a Braided maze will be created, with only 2 dead-ends
+tolerated by the subject that are present in the 42 pattern.
 
 ## Features
 - Random maze generation.
@@ -33,18 +34,35 @@ the direction will be saved in a list to recreate all the path from start to end
 - Maze visualization using MiniLibX.
 - Shortest path calculation.
 - Interactive controls.
-- ...
 
 ## Instructions
-
 ### Requirements
-List the required software and dependencies.
+
+Before running the project, make sure you have the following installed:
+
+- **Python 3.10 or newer**
+- **pip** – Python package installer.
+- **MiniLibX (MLX)** – Required for graphical maze visualization.
+- **Linux with X11** – Required graphical environment for MiniLibX.
+
+Additional development dependencies:
+
+- **flake8** – For code style checking.
+- **mypy** – For static type checking.
+- **build** – For building the reusable Python package.
+- **venv** – Allows you to not change the behaviour of your own system python command
+
+Note: if some are missing they will be added during the installation
 
 ### Installation
-Explain how to install the dependencies and set up the project.
+First of all you will need to run the command:
+```bash
+make install
+```
+that will install most of the dependecies
 
 ### Usage
-Explain how to execute the program.
+Once you meet the requirements and have installed the dependecies
 
 ### Configuration File
 Explain the configuration file format.
