@@ -10,7 +10,7 @@ from mazegen import E, MazeGenerator, N, S, W
 MAX_SCREEN_W = 1920
 MAX_SCREEN_H = 1080
 MARGIN_H: int = 80  # barra del titolo, taskbar, ecc.
-MARGIN_W: int = 40   # bordi della finestra
+MARGIN_W: int = 70   # bordi della finestra
 MIN_CELL: int = 4    # dimensione minima di una cella in pixel
 BACKGROUND: list[tuple[int, int, int]] = [
     (35, 0, 35),  # Viola
@@ -247,6 +247,9 @@ class MlxDisplay:
                 x, y, w, h, WALL_COLORS[self.wall_idx])
             fill_rect(data, size_line, bpp, fmt,
                       x + 2, y + 2, w - 4, h - 4, BACKGROUND[self.wall_idx])
+        self.m.mlx_put_image_to_window(
+            self.mlx_ptr, self.win, self.panel, self.img_w, 0)
+        #self._write_buttons()
 
     def _write_buttons(self) -> None:
         """Scrive la leggenda dei comandi del maze"""
@@ -271,28 +274,24 @@ class MlxDisplay:
         if self.show_path is True:
             self._draw_path(data, size_line, bpp, fmt)
         self._draw_walls(data, size_line, bpp, fmt)
-        self._draw_panel()
-        self.m.mlx_put_image_to_window(self.mlx_ptr, self.win, self.img, 0, 0)
 
     def draw(self) -> None:
         """Ridisegna maze e pannello, poi li presenta"""
         self.draw_maze()
-        self._draw_panel()
+        #self._draw_panel()
         self.present()
 
     def present(self) -> None:
         """Mette le immagini e il testo nella finestra"""
         self.m.mlx_put_image_to_window(self.mlx_ptr, self.win, self.img, 0, 0)
-        self.m.mlx_put_image_to_window(
-            self.mlx_ptr, self.win, self.panel, self.img_w, 0)
-        self._write_buttons()
+
 
     def on_loop(self, param: Any) -> None:
         """Ripresenta le immagini nei primi frame"""
         if self.stop:
             self.m.mlx_loop_exit(self.mlx_ptr)
             return
-        if self.frames < 30:
+        if self.frames < 150:
             self.frames += 1
             if self.frames % 10 == 0:
                 self.present()
@@ -335,7 +334,7 @@ class MlxDisplay:
         if name == "3":
             self.wall_idx = (self.wall_idx + 1) % len(WALL_COLORS)
             self.draw()
-            self.present()
+            self._draw_panel()
         if name == "4":
             self.pattern_idx = (self.pattern_idx + 1) % len(PATTERN_COLORS)
             self.draw()
@@ -374,6 +373,7 @@ class MlxDisplay:
         signal.signal(signal.SIGINT, self._on_sigint)
         try:
             self.draw()
+            self._draw_panel()
             self.m.mlx_key_hook(self.win, self.on_key, None)
             self.m.mlx_mouse_hook(self.win, self.on_mouse, None)
             self.m.mlx_hook(self.win, 33, 0, self.on_close, None)

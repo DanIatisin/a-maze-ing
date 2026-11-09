@@ -4,7 +4,7 @@ from typing import Any
 from mazegen import MazeGenerator
 from output import OutputError, output_writer
 from parsing import ConfigError, parse_config
-from test_render import DisplayError, MlxDisplay
+from render import DisplayError, MlxDisplay
 
 
 def make_maze(config: dict[str, Any]) -> MazeGenerator:

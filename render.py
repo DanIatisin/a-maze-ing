@@ -1,4 +1,5 @@
 import sys
+import signal
 from collections.abc import Callable
 from typing import Any
 
@@ -9,7 +10,7 @@ from mazegen import E, MazeGenerator, N, S, W
 MAX_SCREEN_W = 1920
 MAX_SCREEN_H = 1080
 MARGIN_H: int = 80  # barra del titolo, taskbar, ecc.
-MARGIN_W: int = 40   # bordi della finestra
+MARGIN_W: int = 70   # bordi della finestra
 MIN_CELL: int = 4    # dimensione minima di una cella in pixel
 BACKGROUND: list[tuple[int, int, int]] = [
     (35, 0, 35),  # Viola
@@ -36,6 +37,7 @@ PATTERN_COLORS: list[tuple[int, int, int]] = [
 START_COLOR: tuple[int, int, int] = (0, 220, 120)
 END_COLOR: tuple[int, int, int] = (255, 0, 0)
 PATH_COLOR: tuple[int, int, int] = (220, 200, 0)
+TEXT_COLOR: tuple[int, int, int] = (255, 255, 255)
 BUTTONS: list[tuple[str, str]] = [
     ("1", "Generate a new maze"),
     ("2", "Hide/show shortest path"),
@@ -43,15 +45,51 @@ BUTTONS: list[tuple[str, str]] = [
     ("4", "Change 42 color"),
     ("ESC", "Close"),
 ]
-TEXT_COLOR: int = 0xFFFFFFFF
-LEGEND_W: int = 310   # bordo per i tasti
+LEGEND_W: int = 380   # bordo per i tasti
 LEGEND_MARGIN: int = 15  # margine interno
 ROW_H: int = 10       # altezza di una riga di testo
 LEGEND_H: int = 2 * LEGEND_MARGIN + ROW_H * len(BUTTONS)
 
 BTN_GAP: int = 10  # spazio tra i bottoni
 BTN_MIN_H: int = 30
-TEXT_PAD_X: int = 10  # margine del testo dentro il bottone
+TEXT_PAD_X: int = 15  # margine del testo dentro il bottone
+
+FONT_SCALE: int = 2      # ogni pixel del font diventa 2x2
+CHAR_ADV: int = 6        # larghezza carattere + spazio (in pixel del font)
+
+FONT: dict[str, list[str]] = {
+    " ": [],
+    "1": ["..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."],
+    "2": [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"],
+    "3": ["#####", "...#.", "..#..", "...#.", "....#", "#...#", ".###."],
+    "4": ["...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."],
+    ".": [".....", ".....", ".....", ".....", ".....", ".##..", ".##.."],
+    "/": ["....#", "...#.", "...#.", "..#..", ".#...", ".#...", "#...."],
+    "C": [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."],
+    "E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+    "G": [".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".###."],
+    "H": ["#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+    "S": [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
+    "a": [".....", ".....", ".###.", "....#", ".####", "#...#", ".####"],
+    "c": [".....", ".....", ".###.", "#...#", "#....", "#...#", ".###."],
+    "d": ["....#", "....#", ".####", "#...#", "#...#", "#...#", ".####"],
+    "e": [".....", ".....", ".###.", "#...#", "#####", "#....", ".###."],
+    "g": [".....", ".....", ".####", "#...#", "#...#", "#...#", ".####",
+          "....#", ".###."],
+    "h": ["#....", "#....", "#.##.", "##..#", "#...#", "#...#", "#...#"],
+    "i": ["..#..", ".....", ".##..", "..#..", "..#..", "..#..", ".###."],
+    "l": [".##..", "..#..", "..#..", "..#..", "..#..", "..#..", ".###."],
+    "m": [".....", ".....", "##.#.", "#.#.#", "#.#.#", "#...#", "#...#"],
+    "n": [".....", ".....", "#.##.", "##..#", "#...#", "#...#", "#...#"],
+    "o": [".....", ".....", ".###.", "#...#", "#...#", "#...#", ".###."],
+    "p": [".....", ".....", "####.", "#...#", "#...#", "#...#", "####.",
+          "#....", "#...."],
+    "r": [".....", ".....", "#.##.", "##..#", "#....", "#....", "#...."],
+    "s": [".....", ".....", ".####", "#....", ".###.", "....#", "####."],
+    "t": [".#...", ".#...", "####.", ".#...", ".#...", ".#..#", "..##."],
+    "w": [".....", ".....", "#...#", "#...#", "#.#.#", "#.#.#", ".#.#."],
+    "z": [".....", ".....", "#####", "...#.", "..#..", ".#...", "#####"],
+}
 
 
 class DisplayError(Exception):
@@ -94,8 +132,31 @@ def fill_rect(
         data[offset: offset + w * step] = row
 
 
+def draw_text(
+    data: memoryview,
+    size_line: int,
+    bpp: int,
+    fmt: int,
+    x: int,
+    y: int,
+    text: str,
+    rgb: tuple[int, int, int],
+    scale: int = FONT_SCALE,
+) -> None:
+    """Scrive del testo dentro un'immagine con il font bitmap FONT."""
+    for ch in text:
+        for ry, row in enumerate(FONT.get(ch, [])):
+            for rx, px in enumerate(row):
+                if px == "#":
+                    fill_rect(data, size_line, bpp, fmt,
+                              x + rx * scale, y + ry * scale,
+                              scale, scale, rgb)
+        x += CHAR_ADV * scale
+
+
 class MlxDisplay:
     """Classe che gestisce la visualizzazione del maze in MLX"""
+
     def __init__(self, gen: MazeGenerator,
                  regenerate: Callable[[], MazeGenerator]) -> None:
         """Inizializza la visualizzazione del maze in MLX.
@@ -107,6 +168,8 @@ class MlxDisplay:
         Raises:
             DisplayError: se MLX non riesce a generare l'immagine.
         """
+        self.stop: bool = False
+        self.frames = 0
         self.gen: MazeGenerator = gen
         self.regenerate: Callable[[], MazeGenerator] = regenerate
 
@@ -214,29 +277,21 @@ class MlxDisplay:
         fill_rect(
             data, size_line, bpp, fmt,
             0, 0, LEGEND_W, self.img_h, BACKGROUND[self.wall_idx])
-        for i in range(len(BUTTONS)):
+        for i, (key, label) in enumerate(BUTTONS):
             x, y, w, h = self._button_rect(i)
             fill_rect(
                 data, size_line, bpp, fmt,
                 x, y, w, h, WALL_COLORS[self.wall_idx])
             fill_rect(data, size_line, bpp, fmt,
                       x + 2, y + 2, w - 4, h - 4, BACKGROUND[self.wall_idx])
-
-    def _write_buttons(self) -> None:
-        """Scrive la leggenda dei comandi del maze"""
-        for i, (key, label) in enumerate(BUTTONS):
-            x, y, _, h = self._button_rect(i)
-            self.m.mlx_string_put(
-                self.mlx_ptr,
-                self.win,
-                self.img_w + x + TEXT_PAD_X,  # x
-                y + (h - ROW_H) // 2,         # y
-                TEXT_COLOR,
-                f"{key}. {label}",
-            )
+            draw_text(
+                data, size_line, bpp, fmt,
+                x + TEXT_PAD_X, y + (h - 7 * FONT_SCALE) // 2,
+                f"{key}. {label}", TEXT_COLOR)
 
     def draw(self) -> None:
-        """Disegna il maze, il pattern 42 e la soluzione"""
+        """Riempie i buffer delle immagini (senza toccare la finestra)"""
+        self.frames = 0
         data, bpp, size_line, fmt = self.m.mlx_get_data_addr(self.img)
         fill_rect(
             data, size_line, bpp, fmt, 0, 0, self.img_w,
@@ -246,10 +301,23 @@ class MlxDisplay:
             self._draw_path(data, size_line, bpp, fmt)
         self._draw_walls(data, size_line, bpp, fmt)
         self._draw_panel()
+        self.present()
+
+    def present(self) -> None:
+        """Mette le immagini e il testo nella finestra"""
         self.m.mlx_put_image_to_window(self.mlx_ptr, self.win, self.img, 0, 0)
         self.m.mlx_put_image_to_window(
             self.mlx_ptr, self.win, self.panel, self.img_w, 0)
-        self._write_buttons()
+
+    def on_loop(self, param: Any) -> None:
+        """Ripresenta le immagini nei primi frame"""
+        if self.stop:
+            self.m.mlx_loop_exit(self.mlx_ptr)
+            return
+
+    def on_expose(self, param: Any) -> None:
+        """Ripresenta le immagini quando la finestra viene esposta"""
+        self.present()
 
     def on_close(self, param: Any) -> None:
         """Interrompe il loop quando la finestra viene chiusa"""
@@ -303,13 +371,20 @@ class MlxDisplay:
                 self._do_action(key)
                 return
 
+    def _on_sigint(self, signum: int, frame: Any) -> None:
+        """Ctrl+C: chiede a MLX di uscire dal loop"""
+        self.m.mlx_loop_exit(self.mlx_ptr)
+
     def run(self) -> None:
-        """Visualizza l'immagine, registra gli input e chiude la finestra"""
+        """Mostra la finestra e registra gli input dell'utente."""
+        signal.signal(signal.SIGINT, self._on_sigint)
         try:
             self.draw()
             self.m.mlx_key_hook(self.win, self.on_key, None)
             self.m.mlx_mouse_hook(self.win, self.on_mouse, None)
             self.m.mlx_hook(self.win, 33, 0, self.on_close, None)
+            self.m.mlx_hook(self.win, 12, 1 << 15, self.on_expose, None)
+            self.m.mlx_loop_hook(self.mlx_ptr, self.on_loop, None)
             self.m.mlx_loop(self.mlx_ptr)
         finally:
             self.close()

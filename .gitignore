@@ -6,3 +6,5 @@ maze.txt
 __pycache__/
 maze_analyzer.py
 test_mlx.py
+test_render.py
+testrender123.py
