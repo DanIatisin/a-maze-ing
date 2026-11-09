@@ -28,12 +28,23 @@ If the flag Perfect in config.txt file is set to False a Braided maze will be cr
 tolerated by the subject that are present in the 42 pattern.
 
 ## Features
-- Random maze generation.
+- Random maze generation, reproducible with a seed.
 - Perfect and non-perfect maze modes.
-- Seed support for reproducible generation.
-- Maze visualization using MiniLibX.
-- Shortest path calculation.
-- Interactive controls.
+- Visible "42" pattern made of fully closed cells (omitted, with a message, if
+  the maze is too small).
+- Shortest path calculation (BFS).
+- Output file with hexadecimal wall encoding, entry, exit and solution.
+- Maze visualization using MiniLibX, with:
+  - cell size automatically adapted to the screen;
+  - an on-screen panel with the list of commands, usable with the keyboard or
+    by clicking the buttons;
+  - show/hide of the shortest path;
+  - cycling through several wall colours (the background changes with them);
+  - cycling through several colours for the "42" pattern;
+  - regeneration of a new maze, which also rewrites the output file.
+- Clean exit with `ESC`, with the window close button and with `Ctrl+C`.
+- Clear error messages instead of tracebacks (invalid config, file not found,
+  impossible maze parameters, maze too large for the screen, ...).
 
 ## Instructions
 ### Requirements
@@ -74,12 +85,32 @@ make run
 ```
 
 ### Usage
-If you want to use only the generator first of all you need to create a wheel file.
-In the project folder
-```bash
-make build
+
+```text
+make run
 ```
-This command will create a .whl file.You need to install it in your project folder using
+
+which is equivalent to:
+
+```text
+python3 a_maze_ing.py config.txt
+```
+
+To use another configuration file: `make run CONFIG=other.txt`.
+
+Other Makefile rules:
+
+| Rule | Description |
+|---|---|
+| `make install` | create the virtual environment and install the dependencies |
+| `make run` | run the program with `config.txt` |
+| `make debug` | run the program inside the Python debugger (`pdb`) |
+| `make clean` | remove `__pycache__`, `.mypy_cache`, build artifacts |
+| `make lint` | run `flake8` and `mypy` with the flags required by the subject |
+| `make lint-strict` | run `flake8` and `mypy --strict` |
+| `make build` | build the `mazegen` package and copy it to the repository root |
+
+`make build` command will create a .whl file.You need to install it in your project folder using
 ```bash
 pip install /path/to/mazegen-1.0.0-py3-none-any.whl
 ```
@@ -97,40 +128,133 @@ maze = MazeGenerator(
 )
 ```
 
+### Controls
+
+| Key | Click on | Action |
+|---|---|---|
+| `1` | Generate a new maze | generate a new maze (new random seed) and rewrite the output file |
+| `2` | Hide/show shortest path | show or hide the shortest path (animated) |
+| `3` | Change maze color | next colour for the walls |
+| `4` | Change 42 color | next colour for the "42" pattern |
+| `ESC` | Close | close the program |
+
+The entry cell is drawn in green and the exit cell in red when the path is
+shown.
+
 ### Configuration File
 
-The maze generator uses a configuration file (`config.txt`) to define the maze parameters.
+The configuration file contains one `KEY=VALUE` pair per line.
 
-Each line must contain a `KEY=VALUE` pair. Lines starting with `#` are treated as comments and ignored.
+| Key | Mandatory | Description | Example |
+|---|---|---|---|
+| `WIDTH` | yes | maze width in cells, integer greater than 1 | `WIDTH=20` |
+| `HEIGHT` | yes | maze height in cells, integer greater than 1 | `HEIGHT=15` |
+| `ENTRY` | yes | entry coordinates `x,y` | `ENTRY=0,0` |
+| `EXIT` | yes | exit coordinates `x,y` | `EXIT=19,14` |
+| `OUTPUT_FILE` | yes | name of the output file | `OUTPUT_FILE=maze.txt` |
+| `PERFECT` | yes | `True` for a perfect maze, `False` otherwise | `PERFECT=False` |
+| `SEED` | no | integer seed, for reproducible generation | `SEED=42` |
 
-#### Available Parameters
+Rules checked by the parser:
 
-| Parameter | Description | Example |
-|---|---|---|
-| WIDTH | Maze width (number of cells). | `WIDTH=20` |
-| HEIGHT | Maze height (number of cells). | `HEIGHT=15` |
-| ENTRY | Entry coordinates (x,y). | `ENTRY=0,0` |
-| EXIT | Exit coordinates (x,y). | `EXIT=19,14` |
-| OUTPUT_FILE | Name of the output file. | `OUTPUT_FILE=maze.txt` |
-| PERFECT | Enables or disables perfect maze generation. | `PERFECT=True` |
+- lines starting with `#` and empty lines are ignored;
+- keys are not case-sensitive (`width` and `WIDTH` are the same key), and
+  spaces around keys and values are ignored;
+- a value may contain `=`, only the first `=` separates key and value;
+- a line without `=`, an unknown key, a duplicated key or a missing mandatory
+  key is an error, and the message reports the line number when relevant;
+- `WIDTH` and `HEIGHT` must be integers greater than 1;
+- `ENTRY` and `EXIT` must be two integers separated by a comma, must be
+  different and must be inside the maze;
+- `PERFECT` accepts `True` or `False` (in any capitalization);
+- `SEED`, if present, must be an integer;
+- `OUTPUT_FILE` cannot be empty and cannot be the configuration file itself.
 
-#### Example Configuration
+Example:
 
 ```text
-# Maze dimensions
+# Maze configuration
 WIDTH=20
 HEIGHT=15
-
-# Entry and exit positions
 ENTRY=0,0
 EXIT=19,14
-
-# Output file
 OUTPUT_FILE=maze.txt
-
-# Generation mode
-PERFECT=True
+PERFECT=False
+SEED=42
 ```
+
+If the file is invalid, the program prints a clear message on `stderr` and
+exits with a non-zero code.
+
+### Output file format
+
+The maze is written with one hexadecimal digit per cell, one row of the maze
+per line. Each digit encodes the closed walls with four bits:
+
+| Bit | Direction | Value |
+|---|---|---|
+| 0 (LSB) | North | 1 |
+| 1 | East | 2 |
+| 2 | South | 4 |
+| 3 | West | 8 |
+
+A bit set to 1 means the wall is closed. For example `F` is a cell closed on
+all sides (this is how the "42" pattern is drawn), and `A` is a cell closed on
+the East and West sides.
+
+After the grid there is an empty line, followed by three lines: the entry
+coordinates, the exit coordinates and the shortest path as a string of
+`N`, `E`, `S`, `W` letters. Every line ends with `\n`.
+
+The file is overwritten every time a new maze is generated, so it always
+matches the maze shown on screen.
+
+## Project structure
+
+```text
+.
+├── a_maze_ing.py        # main program
+├── config.txt           # default configuration
+├── parsing.py           # configuration file parser
+├── output.py            # hexadecimal output file writer
+├── render.py            # MLX display
+├── mazegen/             # reusable maze generation module
+│   ├── __init__.py
+│   └── generator.py     # MazeGenerator class
+├── mazegen-1.0.0-py3-none-any.whl   # built package
+├── pyproject.toml
+├── Makefile
+├── LICENSE.md
+└── README.md
+```
+
+How the pieces are connected:
+
+- `parsing.py` reads the configuration file and returns the validated
+  values. It raises `ConfigError` on any problem.
+- `a_maze_ing.py` builds the maze with `MazeGenerator`, solves it, writes the
+  output file, and passes the generator to the display together with a
+  function that builds a new maze. All errors are caught in `main()` and shown
+  as messages.
+- `render.py` draws the maze it receives and calls the "new maze" function when asked.
+- `mazegen` knows nothing about any of the other files, so it can be reused.
+
+## Team and project management
+
+### Roles
+
+- **sabdalla**: configuration file parser, output file writer, main program
+  (`a_maze_ing.py`), MLX display (`render.py`), Makefile, README.
+- **diatisin**: maze generation (`mazegen`), packaging and license, README.
+
+### Tools
+
+- **Git**, with one branch per feature and a review before merging into `main`
+- **Python 3.10+** and `venv`
+- **flake8** and **mypy** for code quality, **Make** to automate the tasks
+- **MiniLibX** (Python wheel provided with the project) for the display
+- **VS Code**, on Ubuntu and on WSL
+- **Claude** (AI assistant), see the Resources section
 
 ## Resources
 To understand DFS - https://www.codecademy.com/article/depth-first-search-dfs-algorithm
@@ -138,4 +262,4 @@ To understand DFS - https://www.codecademy.com/article/depth-first-search-dfs-al
 To understand BFS - https://www.codecademy.com/article/breadth-first-search-bfs-algorithm
 
 ## Artificial Intelligence
-Was used in this project only to understand better the subject, debugging, testing and to understand various python concepts
+Was used in this project only to understand better the subject, debugging, testing and to understand various python concepts.
