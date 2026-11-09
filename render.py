@@ -58,6 +58,7 @@ FONT_SCALE: int = 2      # ogni pixel del font diventa 2x2
 CHAR_ADV: int = 6        # larghezza carattere + spazio (in pixel del font)
 
 PATH_SIZE_RATIO: float = 0.4
+POINT_SIZE_RATIO: float = 0.7
 ANIM_FRAMES: int = 60
 
 
@@ -240,9 +241,24 @@ class MlxDisplay:
                 if value & W:
                     fill(cx, cy, t, c)
 
+    def _draw_points(
+                self, data: Any, size_line: int, bpp: int, fmt: int) -> None:
+        """Disegna entry ed exit"""
+        c = self.cell
+        p = max(2, int(c * POINT_SIZE_RATIO))
+        off = (c - p) // 2
+        x, y = self.gen.entry_pos[0], self.gen.entry_pos[1]
+        ex, ey = self.gen.exit_pos[0], self.gen.exit_pos[1]
+        fill_rect(
+            data, size_line, bpp, fmt,
+            x * c + off, y * c + off, p, p, START_COLOR)
+        fill_rect(
+            data, size_line, bpp, fmt,
+            ex * c + off, ey * c + off, p, p, END_COLOR)
+
     def _draw_path(
                 self, data: Any, size_line: int, bpp: int, fmt: int) -> None:
-        """Disegna la soluzione"""
+        """Disegna il percorso più breve per arrivare da entry ad exit"""
         c = self.cell
         p = max(2, int(c * PATH_SIZE_RATIO))  # spessore del path in pixel
         off = (c - p) // 2                    # margine per centrarlo
@@ -254,7 +270,6 @@ class MlxDisplay:
             fill_rect(data, size_line, bpp, fmt,
                       cx * c + off, cy * c + off, p, p, color)
 
-        mark(x, y, START_COLOR)
         for direction in self.gen.path[:self.path_len]:
             px, py = x, y
             if direction == "N":
@@ -274,8 +289,6 @@ class MlxDisplay:
                 fill_rect(data, size_line, bpp, fmt,
                           x * c + off, min(y, py) * c + off + p,
                           p, c - p, PATH_COLOR)
-        if self.path_len >= len(self.gen.path):
-            mark(x, y, END_COLOR)
 
     def _draw_42(self, data: Any, size_line: int,
                  bpp: int, fmt: int) -> None:
@@ -323,6 +336,7 @@ class MlxDisplay:
         self._draw_42(data, size_line, bpp, fmt)
         if self.show_path is True:
             self._draw_path(data, size_line, bpp, fmt)
+        self._draw_points(data, size_line, bpp, fmt)
         self._draw_walls(data, size_line, bpp, fmt)
         self._draw_panel()
         self.present()
