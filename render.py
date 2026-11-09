@@ -58,6 +58,7 @@ FONT_SCALE: int = 2      # ogni pixel del font diventa 2x2
 CHAR_ADV: int = 6        # larghezza carattere + spazio (in pixel del font)
 
 PATH_SIZE_RATIO: float = 0.4
+ANIM_FRAMES: int = 60
 
 
 FONT: dict[str, list[str]] = {
@@ -172,14 +173,16 @@ class MlxDisplay:
             DisplayError: se MLX non riesce a generare l'immagine.
         """
         self.stop: bool = False
-        self.frames = 0
         self.gen: MazeGenerator = gen
         self.regenerate: Callable[[], MazeGenerator] = regenerate
 
         self.show_path: bool = True
         self.wall_idx: int = 0
         self.pattern_idx: int = 0
+
         self.path_len: int = 0
+        self.path_speed: int = max(1, len(self.gen.path) // ANIM_FRAMES)
+        self.animating: bool = True
 
         self.m: Any = Mlx()
         self.mlx_ptr: Any = self.m.mlx_init()
@@ -244,12 +247,12 @@ class MlxDisplay:
         off = (c - p) // 2                    # margine per centrarlo
         x, y = self.gen.entry_pos[0], self.gen.entry_pos[1]
 
-        def fill(cx: int, cy: int, color: tuple[int, int, int]) -> None:
+        def mark(cx: int, cy: int, color: tuple[int, int, int]) -> None:
             fill_rect(data, size_line, bpp, fmt,
                       cx * c + off, cy * c + off, p, p, color)
 
-        fill(x, y, START_COLOR)
-        for direction in self.gen.path:
+        mark(x, y, START_COLOR)
+        for direction in self.gen.path[:self.path_len]:
             px, py = x, y
             if direction == "N":
                 y -= 1
@@ -259,7 +262,7 @@ class MlxDisplay:
                 y += 1
             if direction == "W":
                 x -= 1
-            fill(x, y, PATH_COLOR)
+            mark(x, y, PATH_COLOR)
             if x != px:
                 fill_rect(data, size_line, bpp, fmt,
                           min(x, px) * c + off + p, y * c + off,
@@ -268,7 +271,8 @@ class MlxDisplay:
                 fill_rect(data, size_line, bpp, fmt,
                           x * c + off, min(y, py) * c + off + p,
                           p, c - p, PATH_COLOR)
-        fill(x, y, END_COLOR)
+        if self.path_len >= len(self.gen.path):
+            mark(x, y, END_COLOR)
 
     def _draw_42(self, data: Any, size_line: int,
                  bpp: int, fmt: int) -> None:
@@ -309,7 +313,6 @@ class MlxDisplay:
 
     def draw(self) -> None:
         """Riempie i buffer delle immagini (senza toccare la finestra)"""
-        self.frames = 0
         data, bpp, size_line, fmt = self.m.mlx_get_data_addr(self.img)
         fill_rect(
             data, size_line, bpp, fmt, 0, 0, self.img_w,
@@ -332,6 +335,12 @@ class MlxDisplay:
         if self.stop:
             self.m.mlx_loop_exit(self.mlx_ptr)
             return
+        if self.animating and self.show_path:
+            self.path_len += self.path_speed
+            if self.path_len >= len(self.gen.path):
+                self.path_len = len(self.gen.path)
+                self.animating = False
+            self.draw()
 
     def on_expose(self, param: Any) -> None:
         """Ripresenta le immagini quando la finestra viene esposta"""
@@ -349,9 +358,14 @@ class MlxDisplay:
             except (ValueError, RuntimeError, OSError) as e:
                 print(f"Error: {e}", file=sys.stderr)
                 return
+            self.path_len = 0
+            self.animating = True
             self.draw()
         if name == "2":
             self.show_path = not self.show_path
+            if self.show_path:
+                self.path_len = 0
+                self.animating = True
             self.draw()
         if name == "3":
             self.wall_idx = (self.wall_idx + 1) % len(WALL_COLORS)
