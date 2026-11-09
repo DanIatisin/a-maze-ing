@@ -249,7 +249,7 @@ How the pieces are connected:
 
 ### Tools
 
-- **Git**, with one branch per feature and a review before merging into `main`
+- **Git**
 - **Python 3.10+** and `venv`
 - **flake8** and **mypy** for code quality, **Make** to automate the tasks
 - **MiniLibX** (Python wheel provided with the project) for the display

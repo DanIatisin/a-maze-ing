@@ -30,7 +30,6 @@ clean:
 	find . -path ./$(VENV) -prune -o -type d -name "__pycache__" \
 		-exec rm -rf {} +
 	rm -rf .mypy_cache .pytest_cache build dist *.egg-info
-	rm -rf mazegen-1.0.0-py3-none-any.whl mazegen-1.0.0.tar.gz
 
 lint:
 	$(PYTHON) -m flake8 . --exclude=venv,.venv
@@ -40,6 +39,6 @@ lint-strict:
 	$(PYTHON) -m flake8 . --exclude=venv,.venv
 	$(PYTHON) -m mypy . --strict $(MYPY_FLAGS)
 
-build:  # Non funziona
+build:
 	$(PYTHON) -m build
 	cp dist/mazegen-* .

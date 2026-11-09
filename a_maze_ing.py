@@ -4,7 +4,6 @@ from typing import Any
 from mazegen import MazeGenerator
 from output import OutputError, output_writer
 from parsing import ConfigError, parse_config
-from render import DisplayError, MlxDisplay
 
 
 def make_maze(config: dict[str, Any]) -> MazeGenerator:
@@ -29,13 +28,20 @@ def make_maze(config: dict[str, Any]) -> MazeGenerator:
 
 
 def main() -> None:
-
+    """
+    Controlla se ci sono esattamente 2 argomenti;
+    Esegue il parsing;
+    Genera il maze;
+    Stampa il maze a schermo con MLX;
+    Gestisce gli errori."""
     # Controlla se ci sono esattamente 2 argomenti
     if len(sys.argv) != 2:
         print("Usage: python a_maze_ing.py <config_file>")
         sys.exit(1)
 
     try:
+        from render import DisplayError, MlxDisplay
+
         config: dict[str, Any] = parse_config(sys.argv[1])
         maze = make_maze(config)
 

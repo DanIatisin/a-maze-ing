@@ -225,6 +225,7 @@ class MlxDisplay:
         t = self.wall
 
         def fill(x: int, y: int, t: int, h: int) -> None:
+            """Invia x,y,t,h a fill_rect()"""
             fill_rect(data, size_line, bpp, fmt, x, y, t, h, color)
 
         for y, row in enumerate(self.gen.maze):
@@ -248,6 +249,8 @@ class MlxDisplay:
         x, y = self.gen.entry_pos[0], self.gen.entry_pos[1]
 
         def mark(cx: int, cy: int, color: tuple[int, int, int]) -> None:
+            """Passa a fill_rect un rettangolo di dimensioni ridotte
+            per disegnare il path."""
             fill_rect(data, size_line, bpp, fmt,
                       cx * c + off, cy * c + off, p, p, color)
 
