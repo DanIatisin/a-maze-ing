@@ -254,12 +254,14 @@ How the pieces are connected:
 - **flake8** and **mypy** for code quality, **Make** to automate the tasks
 - **MiniLibX** (Python wheel provided with the project) for the display
 - **VS Code**, on Ubuntu and on WSL
-- **Claude** (AI assistant), see the Resources section
+- **Claude** AI assistant
 
 ## Resources
 To understand DFS - https://www.codecademy.com/article/depth-first-search-dfs-algorithm
-
 To understand BFS - https://www.codecademy.com/article/breadth-first-search-bfs-algorithm
+To install MLX - https://harm-smits.github.io/42docs/libs/minilibx/getting_started.html
+To understand MLX - https://github.com/SaraFreitas-dev/MinilibX-42-Pyhton-Documentation/blob/main/guides/mlx-reference.md
 
 ## Artificial Intelligence
-Was used in this project only to understand better the subject, debugging, testing and to understand various python concepts.
+AI was used in this project only to understand better the subject, debugging, testing and to understand various python concepts. 
+It was also use to help write the README.
