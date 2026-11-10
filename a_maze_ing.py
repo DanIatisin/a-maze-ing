@@ -65,6 +65,8 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\nInterrupted by user", file=sys.stderr)
         sys.exit(130)
+    except RuntimeError as e:
+        print(f"\n Runtime Error: {e}")
 
 
 if __name__ == "__main__":
